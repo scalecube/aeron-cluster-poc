@@ -7,14 +7,14 @@
     <version>0.0.17</version>
   </parent>
   <description>This project main goal is to get to know aeron-cluster and raft algorithm</description>
-  <version>0.0.1</version>
+  <version>0.0.2-SNAPSHOT</version>
   <name>aeron-cluster-poc</name>
   <packaging>pom</packaging>
   <scm>
     <url>https://github.com/scalecube/aeron-cluster-poc</url>
     <connection>scm:git:git@github.com:scalecube/aeron-cluster-poc.git</connection>
     <developerConnection>scm:git:git@github.com:scalecube/aeron-cluster-poc.git</developerConnection>
-    <tag>v0.0.1</tag>
+    <tag>HEAD</tag>
   </scm>
   <modules>
     <module>aeron-cluster-poc-client</module>
