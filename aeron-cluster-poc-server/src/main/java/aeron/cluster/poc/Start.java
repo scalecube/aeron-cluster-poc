@@ -21,8 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 public class Start {
 
@@ -191,18 +189,12 @@ public class Start {
         int offset,
         int length,
         Header header) {
-
-      ByteBuffer dstBuffer = ByteBuffer.allocate(length);
-      buffer.getBytes(offset, dstBuffer, length);
-      dstBuffer.flip();
-
-      String content = StandardCharsets.UTF_8.decode(dstBuffer).toString();
       logger.info(
           "onSessionMessage, timestampMs: {} => sessionId: {}, position: {}, content: {}",
           timestampMs,
           session.id(),
           header.position(),
-          content);
+          buffer.getStringWithoutLengthAscii(offset, length));
     }
 
     @Override
