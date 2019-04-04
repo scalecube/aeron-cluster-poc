@@ -1,9 +1,8 @@
 package aeron.cluster.poc;
 
-import org.agrona.IoUtil;
-
 import java.io.File;
 import java.util.UUID;
+import org.agrona.IoUtil;
 
 public class Utils {
 
@@ -32,5 +31,15 @@ public class Utils {
    */
   public static void removeFile(String value) {
     IoUtil.delete(new File(value), true);
+  }
+
+  public static void checkInterruptedStatus() {
+    if (Thread.currentThread().isInterrupted()) {
+      fail("unexpected interrupt - test likely to have timed out");
+    }
+  }
+
+  public static void fail(String reason) {
+    throw new IllegalStateException(reason);
   }
 }

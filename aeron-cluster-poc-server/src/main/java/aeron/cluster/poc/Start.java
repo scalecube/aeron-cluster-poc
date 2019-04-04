@@ -1,27 +1,24 @@
 package aeron.cluster.poc;
 
-import io.aeron.Image;
-import io.aeron.Publication;
+import aeron.cluster.poc.service.CounterService;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
-import io.aeron.cluster.codecs.CloseReason;
-import io.aeron.cluster.service.ClientSession;
-import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
-import io.aeron.logbuffer.Header;
-import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
+/**
+ * Starting cluster code snippet
+ */
 public class Start {
 
   private static final Logger logger = LoggerFactory.getLogger(Start.class);
@@ -71,6 +68,12 @@ public class Start {
 
   public static void main(String[] args) throws InterruptedException {
 
+    ClusteredService service = new CounterService();
+    TestNode node = launch(service);
+    Thread.currentThread().join();
+  }
+
+  public static TestNode launch(ClusteredService service) {
     String baseDirName = Utils.tmpFileName("aeron");
     String aeronDirName = baseDirName + "-driver";
     File archiveDir = new File(baseDirName, "archive");
@@ -119,121 +122,22 @@ public class Start {
             .archiveContext(aeronArchiveCtx.clone())
             .deleteDirOnStart(true);
 
-    try (ClusteredMediaDriver clusteredMediaDriver =
+    ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(driverCtx, archiveCtx, consensusModuleCtx);
-    //        AeronArchive aeronArchive = AeronArchive.connect(aeronArchiveCtx)
-    ) {
+//        AeronArchive aeronArchive = AeronArchive.connect(aeronArchiveCtx)
 
-      logger.info(
-          "clusterMembers: {}", clusteredMediaDriver.consensusModule().context().clusterMembers());
+    logger.info(
+        "clusterMembers: {}", clusteredMediaDriver.consensusModule().context().clusterMembers());
 
-      ClusteredServiceContainer.Context clusteredServiceCtx =
-          new ClusteredServiceContainer.Context()
-              .aeronDirectoryName(aeronDirName)
-              .archiveContext(aeronArchiveCtx.clone())
-              .clusterDir(clusterServiceDir)
-              .clusteredService(new CounterService());
+    ClusteredServiceContainer.Context clusteredServiceCtx =
+        new ClusteredServiceContainer.Context()
+            .aeronDirectoryName(aeronDirName)
+            .archiveContext(aeronArchiveCtx.clone())
+            .clusterDir(clusterServiceDir)
+            .clusteredService(service);
 
-      try (ClusteredServiceContainer clusteredServiceContainer =
-          ClusteredServiceContainer.launch(clusteredServiceCtx)) {
-
-        Thread.currentThread().join();
-      }
-    } finally {
-      Utils.removeFile(baseDirName);
-      Utils.removeFile(aeronDirName);
-    }
-  }
-
-  private static class CounterService implements ClusteredService {
-
-    private static final Logger logger = LoggerFactory.getLogger(CounterService.class);
-    private Cluster cluster;
-
-    @Override
-    public void onStart(Cluster cluster) {
-      this.cluster = cluster;
-      logger.info(
-          "onStart => memberId: {}, role: {}, client-sessions: {}",
-          cluster.memberId(),
-          cluster.role(),
-          cluster.clientSessions().size());
-    }
-
-    @Override
-    public void onSessionOpen(ClientSession session, long timestampMs) {
-      logger.info(
-          "onSessionOpen, timestampMs: {} => sessionId: {}, channel: {}, streamId: {}",
-          timestampMs,
-          session.id(),
-          session.responseChannel(),
-          session.responseStreamId());
-    }
-
-    @Override
-    public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason) {
-      logger.info(
-          "onSessionClose, timestampMs: {} => sessionId: {}, channel: {}, streamId: {}, reason: {}",
-          timestampMs,
-          session.id(),
-          session.responseChannel(),
-          session.responseStreamId(),
-          closeReason);
-    }
-
-    @Override
-    public void onSessionMessage(
-        ClientSession session,
-        long timestampMs,
-        DirectBuffer buffer,
-        int offset,
-        int length,
-        Header header) {
-      logger.info(
-          "onSessionMessage, timestampMs: {} => sessionId: {}, position: {}, content: {}",
-          timestampMs,
-          session.id(),
-          header.position(),
-          buffer.getStringWithoutLengthAscii(offset, length));
-    }
-
-    @Override
-    public void onTimerEvent(long correlationId, long timestampMs) {
-      logger.info("onTimerEvent, timestampMs: {} => correlationId: {}", timestampMs, correlationId);
-    }
-
-    @Override
-    public void onTakeSnapshot(Publication snapshotPublication) {
-      logger.info(
-          "onTakeSnapshot => publication: sessionId: {}, channel: {}, streamId: {}, position: {}",
-          snapshotPublication.sessionId(),
-          snapshotPublication.channel(),
-          snapshotPublication.streamId(),
-          snapshotPublication.position());
-    }
-
-    @Override
-    public void onLoadSnapshot(Image snapshotImage) {
-      logger.info(
-          "onLoadSnapshot => image: sessionId: {}, channel: {}, streamId: {}, position: {}",
-          snapshotImage.sessionId(),
-          snapshotImage.subscription().channel(),
-          snapshotImage.subscription().streamId(),
-          snapshotImage.position());
-    }
-
-    @Override
-    public void onRoleChange(Cluster.Role newRole) {
-      logger.info("onRoleChange => new role: {}", newRole);
-    }
-
-    @Override
-    public void onTerminate(Cluster cluster) {
-      logger.info(
-          "onTerminate => memberId: {}, role: {}, client-sessions: {}",
-          cluster.memberId(),
-          cluster.role(),
-          cluster.clientSessions().size());
-    }
+    ClusteredServiceContainer clusteredServiceContainer = ClusteredServiceContainer
+        .launch(clusteredServiceCtx);
+    return new TestNode(clusteredMediaDriver, clusteredServiceContainer);
   }
 }
