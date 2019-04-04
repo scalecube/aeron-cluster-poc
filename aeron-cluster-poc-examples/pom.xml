@@ -1,0 +1,33 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.scalecube</groupId>
+    <artifactId>aeron-cluster-poc-parent</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+  </parent>
+  <artifactId>aeron-cluster-poc-example-server-logic</artifactId>
+  <description>This is a basic example of aeron cluster logic: a distributed basic counter
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.aeron</groupId>
+      <artifactId>aeron-driver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
+      <artifactId>aeron-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
+      <artifactId>aeron-samples</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
+      <artifactId>aeron-cluster</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>
