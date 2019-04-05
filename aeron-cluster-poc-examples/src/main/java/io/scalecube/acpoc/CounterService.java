@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 public class CounterService implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(CounterService.class);
+
   private Cluster cluster;
 
   @Override
@@ -29,7 +30,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onSessionOpen(ClientSession session, long timestampMs) {
     logger.info(
-        "onSessionOpen, timestampMs: {} => sessionId: {}, channel: {}, streamId: {}",
+        "onSessionOpen, timestampMs: {} => memberId: {}, sessionId: {}, channel: {}, streamId: {}",
+        cluster.memberId(),
         timestampMs,
         session.id(),
         session.responseChannel(),
@@ -39,7 +41,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason) {
     logger.info(
-        "onSessionClose, timestampMs: {} => sessionId: {}, channel: {}, streamId: {}, reason: {}",
+        "onSessionClose, timestampMs: {} => memberId: {}, sessionId: {}, channel: {}, streamId: {}, reason: {}",
+        cluster.memberId(),
         timestampMs,
         session.id(),
         session.responseChannel(),
@@ -56,7 +59,8 @@ public class CounterService implements ClusteredService {
       int length,
       Header header) {
     logger.info(
-        "onSessionMessage, timestampMs: {} => sessionId: {}, position: {}, content: {}",
+        "onSessionMessage, timestampMs: {} => memberId: {}, sessionId: {}, position: {}, content: {}",
+        cluster.memberId(),
         timestampMs,
         session.id(),
         header.position(),
@@ -65,13 +69,18 @@ public class CounterService implements ClusteredService {
 
   @Override
   public void onTimerEvent(long correlationId, long timestampMs) {
-    logger.info("onTimerEvent, timestampMs: {} => correlationId: {}", timestampMs, correlationId);
+    logger.info(
+        "onTimerEvent, timestampMs: {} => memberId: {}, correlationId: {}",
+        cluster.memberId(),
+        timestampMs,
+        correlationId);
   }
 
   @Override
   public void onTakeSnapshot(Publication snapshotPublication) {
     logger.info(
-        "onTakeSnapshot => publication: sessionId: {}, channel: {}, streamId: {}, position: {}",
+        "onTakeSnapshot => publication: memberId: {}, sessionId: {}, channel: {}, streamId: {}, position: {}",
+        cluster.memberId(),
         snapshotPublication.sessionId(),
         snapshotPublication.channel(),
         snapshotPublication.streamId(),
@@ -81,7 +90,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onLoadSnapshot(Image snapshotImage) {
     logger.info(
-        "onLoadSnapshot => image: sessionId: {}, channel: {}, streamId: {}, position: {}",
+        "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, streamId: {}, position: {}",
+        cluster.memberId(),
         snapshotImage.sessionId(),
         snapshotImage.subscription().channel(),
         snapshotImage.subscription().streamId(),
@@ -90,7 +100,7 @@ public class CounterService implements ClusteredService {
 
   @Override
   public void onRoleChange(Cluster.Role newRole) {
-    logger.info("onRoleChange => new role: {}", newRole);
+    logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
   }
 
   @Override

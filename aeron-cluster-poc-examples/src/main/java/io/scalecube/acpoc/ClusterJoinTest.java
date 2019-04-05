@@ -40,25 +40,19 @@ public class ClusterJoinTest {
         // "aeron:udp?control-mode=dynamic|control=localhost:8013")
         ;
 
-
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
-            .archiveContext(
-                aeronArchiveContext
-
-                )
+            .archiveContext(aeronArchiveContext.clone())
             .errorHandler(System.err::println)
             .aeronDirectoryName(mediaDir)
-            .clusterDirectoryName(clusterDir)
-        ;
+            .clusterDirectoryName(clusterDir);
 
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(driverCtx, archiveCtx, consensusModuleCtx);
 
-
-
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
+            .errorHandler(System.err::println)
             .aeronDirectoryName(mediaDir)
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(clusterServiceDir))
