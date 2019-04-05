@@ -12,6 +12,11 @@ import java.io.File;
 
 public class ClusterJoinTest {
 
+  /**
+   * Main function runner.
+   *
+   * @param args arguments
+   */
   public static void main(String[] args) {
     String aeronHome = CommonContext.getAeronDirectoryName() + "-" + System.currentTimeMillis();
 

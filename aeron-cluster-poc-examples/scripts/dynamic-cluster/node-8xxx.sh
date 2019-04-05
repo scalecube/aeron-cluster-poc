@@ -14,4 +14,6 @@ java \
     -Daeron.archive.recording.events.channel="aeron:udp?control-mode=dynamic|control=localhost:8030" \
     -Daeron.cluster.member.endpoints="localhost:10000,localhost:20000,localhost:30000,localhost:40000,localhost:8010" \
     -Daeron.cluster.members.status.endpoints="localhost:20001" \
+    -Daeron.cluster.ingress.channel="aeron:udp?endpoint=localhost:9010" \
+    -Daeron.cluster.egress.channel="aeron:udp?endpoint=localhost:9020" \
     ${JVM_OPTS} io.scalecube.acpoc.ClusterJoinTest

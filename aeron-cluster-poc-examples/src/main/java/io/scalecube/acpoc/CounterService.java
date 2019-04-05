@@ -41,7 +41,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason) {
     logger.info(
-        "onSessionClose, timestampMs: {} => memberId: {}, sessionId: {}, channel: {}, streamId: {}, reason: {}",
+        "onSessionClose, timestampMs: {} => memberId: {}, "
+            + "sessionId: {}, channel: {}, streamId: {}, reason: {}",
         cluster.memberId(),
         timestampMs,
         session.id(),
@@ -59,7 +60,8 @@ public class CounterService implements ClusteredService {
       int length,
       Header header) {
     logger.info(
-        "onSessionMessage, timestampMs: {} => memberId: {}, sessionId: {}, position: {}, content: {}",
+        "onSessionMessage, timestampMs: {} => memberId: {}, "
+            + "sessionId: {}, position: {}, content: {}",
         cluster.memberId(),
         timestampMs,
         session.id(),
@@ -79,7 +81,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onTakeSnapshot(Publication snapshotPublication) {
     logger.info(
-        "onTakeSnapshot => publication: memberId: {}, sessionId: {}, channel: {}, streamId: {}, position: {}",
+        "onTakeSnapshot => publication: memberId: {}, sessionId: {}, channel: {}, "
+            + "streamId: {}, position: {}",
         cluster.memberId(),
         snapshotPublication.sessionId(),
         snapshotPublication.channel(),
@@ -90,7 +93,8 @@ public class CounterService implements ClusteredService {
   @Override
   public void onLoadSnapshot(Image snapshotImage) {
     logger.info(
-        "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, streamId: {}, position: {}",
+        "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, "
+            + "streamId: {}, position: {}",
         cluster.memberId(),
         snapshotImage.sessionId(),
         snapshotImage.subscription().channel(),
