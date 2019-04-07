@@ -1,6 +1,6 @@
-package aeron.cluster.poc;
+package poc;
 
-import aeron.cluster.poc.service.CounterService;
+import poc.service.CounterService;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;

@@ -1,4 +1,4 @@
-package aeron.cluster.poc.service;
+package poc.service;
 
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.logbuffer.Header;

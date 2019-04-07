@@ -1,4 +1,4 @@
-package aeron.cluster.poc;
+package poc;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
@@ -11,7 +11,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class ClusterClient implements AutoCloseable {
 
@@ -21,7 +20,7 @@ public class ClusterClient implements AutoCloseable {
   private final AeronCluster client;
   private int responseCount;
 
-  private ClusterClient(final String aeronDirName, final int memberCount,
+  public ClusterClient(final String aeronDirName, final int memberCount,
       OnResponseListener onResponse) {
     EgressListener egressMessageListener =
         (clusterSessionId, timestamp, buffer, offset, length, header) -> {
@@ -49,22 +48,15 @@ public class ClusterClient implements AutoCloseable {
             .clusterMemberEndpoints(clientMemberEndpoints(memberCount)));
   }
 
-  Mono<Void> sendMessage(final String msg) {
-    return Mono.create(sink -> {
-      final ExpandableArrayBuffer msgBuffer = new ExpandableArrayBuffer();
-      msgBuffer.putStringWithoutLengthAscii(0, msg);
-      final EgressListener listener =
-          (clusterSessionId, timestamp, buffer, offset, length, header) ->
-              sink.success();
-      while (client.offer(msgBuffer, 0, BitUtil.SIZE_OF_INT) < 0) {
-        Utils.checkInterruptedStatus();
-        client.pollEgress();
-        Thread.yield();
-      }
+  public void sendMessage(final String msg) {
+    final ExpandableArrayBuffer msgBuffer = new ExpandableArrayBuffer();
+    msgBuffer.putStringWithoutLengthAscii(0, msg);
+    while (client.offer(msgBuffer, 0, BitUtil.SIZE_OF_INT) < 0) {
+      Utils.checkInterruptedStatus();
       client.pollEgress();
-    });
-
-
+      Thread.yield();
+    }
+    client.pollEgress();
   }
 
   public void awaitResponses(final int messageCount) {
@@ -97,7 +89,7 @@ public class ClusterClient implements AutoCloseable {
   }
 
   @FunctionalInterface
-  interface OnResponseListener {
+  public interface OnResponseListener {
 
     void onResponse(DirectBuffer buffer, int offset, int length);
   }

@@ -1,4 +1,4 @@
-package aeron.cluster.poc;
+package poc;
 
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.service.ClusteredServiceContainer;

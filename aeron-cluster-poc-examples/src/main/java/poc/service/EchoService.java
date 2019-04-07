@@ -1,6 +1,6 @@
-package aeron.cluster.poc.service;
+package poc.service;
 
-import aeron.cluster.poc.Utils;
+import poc.Utils;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;

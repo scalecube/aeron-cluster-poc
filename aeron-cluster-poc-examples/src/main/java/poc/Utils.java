@@ -1,4 +1,4 @@
-package aeron.cluster.poc;
+package poc;
 
 import java.io.File;
 import java.util.UUID;

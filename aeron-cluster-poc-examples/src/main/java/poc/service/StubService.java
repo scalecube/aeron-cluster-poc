@@ -1,4 +1,4 @@
-package aeron.cluster.poc.service;
+package poc.service;
 
 import io.aeron.Image;
 import io.aeron.Publication;
