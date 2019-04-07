@@ -1,15 +1,15 @@
-package poc.service;
+package io.scalecube.acpoc.service;
 
+import io.scalecube.acpoc.Utils;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CounterService extends StubService {
+public class EchoService extends StubService {
 
-  private static final Logger logger = LoggerFactory.getLogger(CounterService.class);
-  private int count = 0;
+  private static final Logger logger = LoggerFactory.getLogger(EchoService.class);
 
   public void onSessionMessage(
       final ClientSession session,
@@ -19,7 +19,10 @@ public class CounterService extends StubService {
       final int length,
       final Header header) {
 
-    logger.info("[RCV]: Current count before request={}", count++);
+    logger.info("SERVER RCV: {} bytes, sending back.", length);
+    while (session.offer(buffer, offset, length) < 0) {
+      Utils.checkInterruptedStatus();
+      Thread.yield();
+    }
   }
-
 }

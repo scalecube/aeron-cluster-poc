@@ -1,4 +1,4 @@
-package poc;
+package io.scalecube.acpoc;
 
 import java.io.File;
 import java.util.UUID;

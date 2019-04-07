@@ -1,0 +1,25 @@
+package io.scalecube.acpoc;
+
+import io.aeron.CommonContext;
+import java.time.Duration;
+import io.scalecube.acpoc.ClusterClient.OnResponseListener;
+import reactor.core.publisher.Flux;
+
+public class ClusterClientTest {
+  public static void main(String[] args) throws InterruptedException {
+    String baseDirName =
+        CommonContext.getAeronDirectoryName() + "-" + "client" + "-" + System.currentTimeMillis();
+
+    OnResponseListener onResponseListener = (buffer, offset, length) -> {
+      System.out.println("Client: received " + length + " bytes.");
+    };
+
+    ClusterClient client = new ClusterClient(baseDirName, onResponseListener);
+    Flux.interval(Duration.ofSeconds(2)).subscribe(cnt -> {
+      client.sendMessage("Hello to cluster " + cnt);
+      client.awaitResponses(1);
+    });
+    Thread.currentThread().join();
+  }
+
+}

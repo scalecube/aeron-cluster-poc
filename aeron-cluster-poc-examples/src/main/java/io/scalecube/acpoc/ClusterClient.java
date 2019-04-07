@@ -1,4 +1,4 @@
-package poc;
+package io.scalecube.acpoc;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
@@ -20,8 +20,7 @@ public class ClusterClient implements AutoCloseable {
   private final AeronCluster client;
   private int responseCount;
 
-  public ClusterClient(final String aeronDirName, final int memberCount,
-      OnResponseListener onResponse) {
+  public ClusterClient(final String aeronDirName, OnResponseListener onResponse) {
     EgressListener egressMessageListener =
         (clusterSessionId, timestamp, buffer, offset, length, header) -> {
           logger.info(
@@ -32,7 +31,6 @@ public class ClusterClient implements AutoCloseable {
               buffer.getStringWithoutLengthAscii(offset, length));
           responseCount++;
           onResponse.onResponse(buffer, offset, length);
-
         };
 
     this.clientMediaDriver = MediaDriver.launch(
@@ -44,8 +42,7 @@ public class ClusterClient implements AutoCloseable {
         new AeronCluster.Context()
             .egressListener(egressMessageListener)
             .aeronDirectoryName(aeronDirName)
-            .ingressChannel("aeron:udp")
-            .clusterMemberEndpoints(clientMemberEndpoints(memberCount)));
+            .ingressChannel("aeron:udp"));
   }
 
   public void sendMessage(final String msg) {
@@ -70,22 +67,9 @@ public class ClusterClient implements AutoCloseable {
   public void close() {
     CloseHelper.close(client);
     CloseHelper.close(clientMediaDriver);
-
     if (null != clientMediaDriver) {
       clientMediaDriver.context().deleteAeronDirectory();
     }
-
-  }
-
-  private String clientMemberEndpoints(final int memberCount) {
-    final StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < memberCount; i++) {
-      builder
-          .append(i).append('=')
-          .append("localhost:2011").append(i).append(',');
-    }
-    builder.setLength(builder.length() - 1);
-    return builder.toString();
   }
 
   @FunctionalInterface

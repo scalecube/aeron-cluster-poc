@@ -1,4 +1,4 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.service;
 
 import io.aeron.Image;
 import io.aeron.Publication;

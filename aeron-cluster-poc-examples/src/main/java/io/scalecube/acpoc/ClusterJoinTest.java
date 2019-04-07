@@ -13,6 +13,7 @@ import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
 import java.io.File;
+import io.scalecube.acpoc.service.EchoService;
 
 public class ClusterJoinTest {
 
@@ -25,8 +26,7 @@ public class ClusterJoinTest {
    */
   public static void main(String[] args) {
 
-    int instanceId = Integer.parseInt(System.getProperty("cluster.node.instanceId", "0"));
-    int membersCount = Integer.parseInt(System.getProperty("cluster.members.count", "1"));
+    String instanceId = System.getProperty("aeron.cluster.member.id", "0");
 
     String baseDirName =
         CommonContext.getAeronDirectoryName() + "-" + instanceId + "-" + System.currentTimeMillis();
@@ -74,8 +74,7 @@ public class ClusterJoinTest {
             .archiveContext(aeronArchiveContext.clone())
             .deleteDirOnStart(cleanStart);
 
-    ClusteredService clusteredService = new CounterService();
-//    ClusteredService clusteredService = new EchoService();
+    ClusteredService clusteredService = new EchoService();
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
