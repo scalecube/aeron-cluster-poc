@@ -12,9 +12,13 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
-import java.io.File;
 import io.scalecube.acpoc.service.EchoService;
+import java.io.File;
 
+/**
+ * Main class that starts single node in cluster, though expecting most of cluster configuration
+ * passed via VM args.
+ */
 public class ClusterJoinTest {
 
   private static final long MAX_CATALOG_ENTRIES = 1024;
@@ -32,9 +36,6 @@ public class ClusterJoinTest {
         CommonContext.getAeronDirectoryName() + "-" + instanceId + "-" + System.currentTimeMillis();
 
     String aeronDirName = baseDirName + "/media";
-//    String archiveDir = baseDirName + "/archive";
-//    String clusterDir = baseDirName + "/cluster";
-//    String clusterServiceDir = baseDirName + "/service";
 
     AeronArchive.Context aeronArchiveContext = new AeronArchive.Context()
         // .controlRequestChannel("aeron:udp?endpoint=localhost:8011")
@@ -68,7 +69,6 @@ public class ClusterJoinTest {
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
             .errorHandler(System.err::println)
-//            .appointedLeaderId(1)
             .aeronDirectoryName(aeronDirName)
             .clusterDir(new File(baseDirName, "consensus-module"))
             .archiveContext(aeronArchiveContext.clone())

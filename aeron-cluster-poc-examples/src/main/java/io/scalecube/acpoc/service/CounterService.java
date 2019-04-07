@@ -11,6 +11,9 @@ import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * For now - just stub.
+ */
 public class CounterService implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(CounterService.class);

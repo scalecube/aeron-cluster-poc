@@ -12,6 +12,10 @@ import org.agrona.ExpandableArrayBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Wrapper around {@link AeronCluster} cluster client. Aims to ease the communication with
+ * aeron-cluster.
+ */
 public class ClusterClient implements AutoCloseable {
 
   private static final Logger logger = LoggerFactory.getLogger(ClusterClient.class);
@@ -20,6 +24,13 @@ public class ClusterClient implements AutoCloseable {
   private final AeronCluster client;
   private int responseCount;
 
+  /**
+   * Creates an instance of client. Note that cluster member addresses are expected to be passed in
+   * VM args as {@code aeron.cluster.member.endpoints}.
+   *
+   * @param aeronDirName directory name to be used for client's aeron media driver.
+   * @param onResponse callback for response received from cluster.
+   */
   public ClusterClient(final String aeronDirName, OnResponseListener onResponse) {
     EgressListener egressMessageListener =
         (clusterSessionId, timestamp, buffer, offset, length, header) -> {
@@ -45,6 +56,11 @@ public class ClusterClient implements AutoCloseable {
             .ingressChannel("aeron:udp"));
   }
 
+  /**
+   * Send message to cluster.
+   *
+   * @param msg - to be sent
+   */
   public void sendMessage(final String msg) {
     final ExpandableArrayBuffer msgBuffer = new ExpandableArrayBuffer();
     msgBuffer.putStringWithoutLengthAscii(0, msg);
@@ -56,6 +72,11 @@ public class ClusterClient implements AutoCloseable {
     client.pollEgress();
   }
 
+  /**
+   * Await responses from cluster.
+   *
+   * @param messageCount to be received in order to release
+   */
   public void awaitResponses(final int messageCount) {
     while (responseCount < messageCount) {
       Utils.checkInterruptedStatus();
@@ -64,6 +85,9 @@ public class ClusterClient implements AutoCloseable {
     }
   }
 
+  /**
+   * Shutdown method.
+   */
   public void close() {
     CloseHelper.close(client);
     CloseHelper.close(clientMediaDriver);
@@ -72,6 +96,9 @@ public class ClusterClient implements AutoCloseable {
     }
   }
 
+  /**
+   * Represents response's callback.
+   */
   @FunctionalInterface
   public interface OnResponseListener {
 

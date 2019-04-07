@@ -11,6 +11,9 @@ import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * {@link ClusteredService} adaptor.
+ */
 public abstract class StubService implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(StubService.class);

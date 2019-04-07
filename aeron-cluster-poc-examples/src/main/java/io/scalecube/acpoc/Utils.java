@@ -1,6 +1,5 @@
 package io.scalecube.acpoc;
 
-import java.io.File;
 import java.util.UUID;
 import org.agrona.IoUtil;
 
@@ -25,20 +24,19 @@ public class Utils {
   }
 
   /**
-   * Creates tmp file with using the given value.
-   *
-   * @param value target.
+   * In order to let interrupt the process, thi method is regularly called in 'waiting' loops.
    */
-  public static void removeFile(String value) {
-    IoUtil.delete(new File(value), true);
-  }
-
   public static void checkInterruptedStatus() {
     if (Thread.currentThread().isInterrupted()) {
       fail("unexpected interrupt - test likely to have timed out");
     }
   }
 
+  /**
+   * Fail for a reason.
+   *
+   * @param reason to fail
+   */
   public static void fail(String reason) {
     throw new IllegalStateException(reason);
   }
