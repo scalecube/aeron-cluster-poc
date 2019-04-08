@@ -7,6 +7,7 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
 import io.aeron.logbuffer.Header;
+import java.nio.charset.StandardCharsets;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -112,8 +113,9 @@ public class ClusterClient implements AutoCloseable {
    * @return result
    */
   public long sendMessage(final String msg) {
-    byte[] msgBytes = msg.getBytes();
-    return client.offer(new UnsafeBuffer(msgBytes), 0, msgBytes.length);
+    byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+    UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+    return client.offer(buffer, 0, bytes.length);
   }
 
   /** Await responses from cluster. */

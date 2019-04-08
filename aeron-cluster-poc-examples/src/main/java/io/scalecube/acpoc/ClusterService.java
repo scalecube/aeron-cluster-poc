@@ -85,6 +85,9 @@ public class ClusterService implements ClusteredService {
       int offset,
       int length,
       Header header) {
+    byte[] bytes = new byte[length];
+    buffer.getBytes(offset, bytes);
+
     logger.info(
         "onSessionMessage, timestampMs: {} => memberId: {}, "
             + "sessionId: {}, position: {}, content: {}",
@@ -92,7 +95,7 @@ public class ClusterService implements ClusteredService {
         cluster.memberId(),
         session.id(),
         header.position(),
-        length);
+        new String(bytes));
 
     // Updated service state
     serviceCounter.incrementAndGet();
