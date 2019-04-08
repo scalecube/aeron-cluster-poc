@@ -1,24 +1,38 @@
-package io.scalecube.acpoc.service;
+package io.scalecube.acpoc;
 
 import io.aeron.Image;
 import io.aeron.Publication;
+import io.aeron.cluster.ClusterControl;
+import io.aeron.cluster.ClusterControl.ToggleState;
 import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
+import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.Header;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
+import org.agrona.concurrent.status.AtomicCounter;
+import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * For now - just stub.
- */
-public class CounterService implements ClusteredService {
+public class ClusterService implements ClusteredService {
 
-  private static final Logger logger = LoggerFactory.getLogger(CounterService.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
+
+  private final CountersManager countersManager;
 
   private Cluster cluster;
+
+  // State
+
+  private final AtomicInteger serviceCounter = new AtomicInteger();
+
+  public ClusterService(CountersManager countersManager) {
+    this.countersManager = countersManager;
+  }
 
   @Override
   public void onStart(Cluster cluster) {
@@ -33,9 +47,10 @@ public class CounterService implements ClusteredService {
   @Override
   public void onSessionOpen(ClientSession session, long timestampMs) {
     logger.info(
-        "onSessionOpen, timestampMs: {} => memberId: {}, sessionId: {}, channel: {}, streamId: {}",
-        cluster.memberId(),
+        "onSessionOpen, timestampMs: {} => memberId: {}, sessionId: {}, "
+            + "responseChannel: {}, responseStreamId: {}",
         timestampMs,
+        cluster.memberId(),
         session.id(),
         session.responseChannel(),
         session.responseStreamId());
@@ -45,9 +60,9 @@ public class CounterService implements ClusteredService {
   public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason) {
     logger.info(
         "onSessionClose, timestampMs: {} => memberId: {}, "
-            + "sessionId: {}, channel: {}, streamId: {}, reason: {}",
-        cluster.memberId(),
+            + "sessionId: {}, responseChannel: {}, responseStreamId: {}, reason: {}",
         timestampMs,
+        cluster.memberId(),
         session.id(),
         session.responseChannel(),
         session.responseStreamId(),
@@ -65,20 +80,37 @@ public class CounterService implements ClusteredService {
     logger.info(
         "onSessionMessage, timestampMs: {} => memberId: {}, "
             + "sessionId: {}, position: {}, content: {}",
-        cluster.memberId(),
         timestampMs,
+        cluster.memberId(),
         session.id(),
         header.position(),
-        buffer.getStringWithoutLengthAscii(offset, length));
+        length);
+
+    // Updated service state
+    serviceCounter.incrementAndGet();
+
+    // Send response back
+    while (session.offer(buffer, offset, length) < 0) {
+      Utils.checkInterruptedStatus();
+      Thread.yield();
+    }
   }
 
   @Override
   public void onTimerEvent(long correlationId, long timestampMs) {
     logger.info(
         "onTimerEvent, timestampMs: {} => memberId: {}, correlationId: {}",
-        cluster.memberId(),
         timestampMs,
+        cluster.memberId(),
         correlationId);
+
+    if (correlationId == 42 && cluster.role() == Role.LEADER) {
+      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+      boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
+      logger.info("ToggleState to SNAPSHOT: " + result);
+
+      cluster.scheduleTimer(42, (long) (cluster.timeMs() + 1e4));
+    }
   }
 
   @Override
@@ -91,6 +123,15 @@ public class CounterService implements ClusteredService {
         snapshotPublication.channel(),
         snapshotPublication.streamId(),
         snapshotPublication.position());
+
+    UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES]);
+    buffer.putInt(0, serviceCounter.get());
+    long offer = snapshotPublication.offer(buffer);
+
+    logger.info(
+        "onTakeSnapshot => memberId: {}, serviceCounter snapshot taken: {}",
+        cluster.memberId(),
+        offer);
   }
 
   @Override
@@ -108,6 +149,10 @@ public class CounterService implements ClusteredService {
   @Override
   public void onRoleChange(Cluster.Role newRole) {
     logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
+    // Schedule process of taking snapshot if on leader
+    if (newRole == Role.LEADER) {
+      cluster.scheduleTimer(42, (long) (cluster.timeMs() + 1e4));
+    }
   }
 
   @Override

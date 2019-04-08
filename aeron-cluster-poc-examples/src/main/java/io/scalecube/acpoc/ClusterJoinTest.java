@@ -12,7 +12,6 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
-import io.scalecube.acpoc.service.EchoService;
 import java.io.File;
 import org.agrona.CloseHelper;
 import org.agrona.IoUtil;
@@ -71,7 +70,8 @@ public class ClusterJoinTest {
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
 
-    ClusteredService clusteredService = new EchoService();
+    ClusteredService clusteredService =
+        new ClusterService(clusteredMediaDriver.mediaDriver().context().countersManager());
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
