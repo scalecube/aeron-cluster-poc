@@ -2,13 +2,14 @@ package io.scalecube.acpoc;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
+import io.aeron.cluster.codecs.EventCode;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
-import org.agrona.BitUtil;
+import io.aeron.logbuffer.Header;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
-import org.agrona.ExpandableArrayBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,63 @@ public class ClusterClient implements AutoCloseable {
 
   private final MediaDriver clientMediaDriver;
   private final AeronCluster client;
-  private int responseCount;
+
+  class EgressListenerImpl implements EgressListener {
+    private final OnResponseListener onResponse;
+
+    EgressListenerImpl(OnResponseListener onResponse) {
+      this.onResponse = onResponse;
+    }
+
+    @Override
+    public void onMessage(
+        long clusterSessionId,
+        long timestamp,
+        DirectBuffer buffer,
+        int offset,
+        int length,
+        Header header) {
+      logger.info(
+          "[onMessage]: timestamp: {}; from clusterSession: {}, position: {}, content: {}",
+          timestamp,
+          clusterSessionId,
+          header.position(),
+          buffer.getStringWithoutLengthAscii(offset, length));
+      onResponse.onResponse(buffer, offset, length);
+    }
+
+    @Override
+    public void sessionEvent(
+        long correlationId,
+        long clusterSessionId,
+        long leadershipTermId,
+        int leaderMemberId,
+        EventCode code,
+        String detail) {
+      logger.info(
+          "[onSessionEvent]: correlationId: {}, clusterSessionId: {}, "
+              + "leadershipTermId: {}, leaderMemberId: {}, eventCode: {}, detail: {}",
+          correlationId,
+          clusterSessionId,
+          leadershipTermId,
+          leaderMemberId,
+          code,
+          detail);
+    }
+
+    @Override
+    public void newLeader(
+        long clusterSessionId, long leadershipTermId, int leaderMemberId, String memberEndpoints) {
+      logger.info(
+          "[newLeader]: clusterSessionId: {}, "
+              + "leadershipTermId: {}, leaderMemberId: {}, memberEndpoints: {}",
+          clusterSessionId,
+          leadershipTermId,
+          leaderMemberId,
+          memberEndpoints);
+      // client.onNewLeader(clusterSessionId, leadershipTermId, leaderMemberId, memberEndpoints);
+    }
+  }
 
   /**
    * Creates an instance of client. Note that cluster member addresses are expected to be passed in
@@ -32,73 +89,46 @@ public class ClusterClient implements AutoCloseable {
    * @param onResponse callback for response received from cluster.
    */
   public ClusterClient(final String aeronDirName, OnResponseListener onResponse) {
-    EgressListener egressMessageListener =
-        (clusterSessionId, timestamp, buffer, offset, length, header) -> {
-          logger.info(
-              "[Received]: timestamp: {}; from clusterSession: {}, position: {}, content: {}",
-              timestamp,
-              clusterSessionId,
-              header.position(),
-              buffer.getStringWithoutLengthAscii(offset, length));
-          responseCount++;
-          onResponse.onResponse(buffer, offset, length);
-        };
+    this.clientMediaDriver =
+        MediaDriver.launch(
+            new Context()
+                .threadingMode(ThreadingMode.SHARED)
+                .warnIfDirectoryExists(true)
+                .aeronDirectoryName(aeronDirName));
 
-    this.clientMediaDriver = MediaDriver.launch(
-        new Context()
-            .threadingMode(ThreadingMode.SHARED)
-            .aeronDirectoryName(aeronDirName));
-
-    this.client = AeronCluster.connect(
-        new AeronCluster.Context()
-            .egressListener(egressMessageListener)
-            .aeronDirectoryName(aeronDirName)
-            .ingressChannel("aeron:udp"));
+    this.client =
+        AeronCluster.connect(
+            new AeronCluster.Context()
+                .errorHandler(System.err::println)
+                .egressListener(new EgressListenerImpl(onResponse))
+                .aeronDirectoryName(aeronDirName)
+                .ingressChannel("aeron:udp"));
   }
 
   /**
    * Send message to cluster.
    *
    * @param msg - to be sent
+   * @return result
    */
-  public void sendMessage(final String msg) {
-    final ExpandableArrayBuffer msgBuffer = new ExpandableArrayBuffer();
-    msgBuffer.putStringWithoutLengthAscii(0, msg);
-    while (client.offer(msgBuffer, 0, BitUtil.SIZE_OF_INT) < 0) {
-      Utils.checkInterruptedStatus();
-      client.pollEgress();
-      Thread.yield();
-    }
+  public long sendMessage(final String msg) {
+    byte[] msgBytes = msg.getBytes();
+    return client.offer(new UnsafeBuffer(msgBytes), 0, msgBytes.length);
+  }
+
+  /** Await responses from cluster. */
+  public void poll() {
     client.pollEgress();
   }
 
-  /**
-   * Await responses from cluster.
-   *
-   * @param messageCount to be received in order to release
-   */
-  public void awaitResponses(final int messageCount) {
-    while (responseCount < messageCount) {
-      Utils.checkInterruptedStatus();
-      Thread.yield();
-      client.pollEgress();
-    }
-  }
-
-  /**
-   * Shutdown method.
-   */
+  /** Shutdown method. */
   public void close() {
     CloseHelper.close(client);
     CloseHelper.close(clientMediaDriver);
-    if (null != clientMediaDriver) {
-      clientMediaDriver.context().deleteAeronDirectory();
-    }
+    clientMediaDriver.context().deleteAeronDirectory();
   }
 
-  /**
-   * Represents response's callback.
-   */
+  /** Represents response's callback. */
   @FunctionalInterface
   public interface OnResponseListener {
 

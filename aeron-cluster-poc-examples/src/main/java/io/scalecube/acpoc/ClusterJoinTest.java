@@ -14,6 +14,9 @@ import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
 import io.scalecube.acpoc.service.EchoService;
 import java.io.File;
+import org.agrona.CloseHelper;
+import org.agrona.IoUtil;
+import reactor.core.publisher.Mono;
 
 /**
  * Main class that starts single node in cluster, though expecting most of cluster configuration
@@ -32,70 +35,63 @@ public class ClusterJoinTest {
 
     String instanceId = System.getProperty("aeron.cluster.member.id", "0");
 
-    String baseDirName =
+    String aeronHome =
         CommonContext.getAeronDirectoryName() + "-" + instanceId + "-" + System.currentTimeMillis();
 
-    String aeronDirName = baseDirName + "/media";
+    String aeronDirName = aeronHome + "/media";
 
-    AeronArchive.Context aeronArchiveContext = new AeronArchive.Context()
-        // .controlRequestChannel("aeron:udp?endpoint=localhost:8011")
-        // .controlResponseChannel("aeron:udp?endpoint=localhost:8012")
-        // .recordingEventsChannel(
-        // "aeron:udp?control-mode=dynamic|control=localhost:8013")
-        .aeronDirectoryName(baseDirName);
+    AeronArchive.Context aeronArchiveContext =
+        new AeronArchive.Context().aeronDirectoryName(aeronDirName);
 
     MediaDriver.Context mediaDriverContest =
-        new Context() //
-            .aeronDirectoryName(aeronDirName)
+        new Context()
             .errorHandler(System.err::println)
+            .aeronDirectoryName(aeronDirName)
             .threadingMode(ThreadingMode.SHARED)
-            .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier())
-            .dirDeleteOnStart(true);
-
-    boolean cleanStart = true;
+            .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
     Archive.Context archiveContext =
         new Archive.Context()
             .maxCatalogEntries(MAX_CATALOG_ENTRIES)
             .aeronDirectoryName(aeronDirName)
-            .archiveDir(new File(baseDirName, "archive"))
+            .archiveDir(new File(aeronHome, "archive"))
             .controlChannel(aeronArchiveContext.controlRequestChannel())
             .controlStreamId(aeronArchiveContext.controlRequestStreamId())
             .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
             .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
-            .threadingMode(ArchiveThreadingMode.SHARED)
-            .deleteArchiveOnStart(cleanStart);
+            .threadingMode(ArchiveThreadingMode.SHARED);
 
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
             .errorHandler(System.err::println)
             .aeronDirectoryName(aeronDirName)
-            .clusterDir(new File(baseDirName, "consensus-module"))
-            .archiveContext(aeronArchiveContext.clone())
-            .deleteDirOnStart(cleanStart);
+            .clusterDir(new File(aeronHome, "consensus-module"))
+            .archiveContext(aeronArchiveContext.clone());
+
+    ClusteredMediaDriver clusteredMediaDriver =
+        ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
 
     ClusteredService clusteredService = new EchoService();
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
+            .errorHandler(System.err::println)
             .aeronDirectoryName(aeronDirName)
             .archiveContext(aeronArchiveContext.clone())
-            .clusterDir(new File(baseDirName, "service"))
-            .clusteredService(clusteredService)
-            .errorHandler(System.err::println);
-
-    ClusteredMediaDriver clusteredMediaDriver =
-        ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
+            .clusterDir(new File(aeronHome, "service"))
+            .clusteredService(clusteredService);
 
     ClusteredServiceContainer clusteredServiceContainer =
         ClusteredServiceContainer.launch(clusteredServiceCtx);
 
-    clusteredMediaDriver //
-        .consensusModule()
-        .context()
-        .shutdownSignalBarrier()
-        .await();
-
-    clusteredMediaDriver.close();
+    Mono<Void> onShutdown =
+        Utils.onShutdown(
+            () -> {
+              CloseHelper.close(clusteredMediaDriver);
+              CloseHelper.close(clusteredServiceContainer);
+              IoUtil.delete(new File(aeronHome), true);
+              return null;
+            });
+    onShutdown.block();
   }
 }
