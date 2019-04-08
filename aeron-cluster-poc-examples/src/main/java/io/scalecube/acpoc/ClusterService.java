@@ -9,7 +9,9 @@ import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
+import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -17,10 +19,14 @@ import org.agrona.concurrent.status.AtomicCounter;
 import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 public class ClusterService implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
+
+  private static final Duration SNAPSHOT_PERIOD = Duration.ofSeconds(20);
 
   private final CountersManager countersManager;
 
@@ -29,6 +35,8 @@ public class ClusterService implements ClusteredService {
   // State
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
+
+  private Disposable snapshotDisposable;
 
   public ClusterService(CountersManager countersManager) {
     this.countersManager = countersManager;
@@ -103,14 +111,6 @@ public class ClusterService implements ClusteredService {
         timestampMs,
         cluster.memberId(),
         correlationId);
-
-    if (correlationId == 42 && cluster.role() == Role.LEADER) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
-      logger.info("ToggleState to SNAPSHOT: " + result);
-
-      cluster.scheduleTimer(42, (long) (cluster.timeMs() + 1e4));
-    }
   }
 
   @Override
@@ -144,6 +144,23 @@ public class ClusterService implements ClusteredService {
         snapshotImage.subscription().channel(),
         snapshotImage.subscription().streamId(),
         snapshotImage.position());
+
+    FragmentHandler handler =
+        (buffer, offset, length, header) -> serviceCounter.set(buffer.getInt(offset));
+
+    while (true) {
+      int fragments = snapshotImage.poll(handler, 1);
+
+      if (fragments == 1) {
+        break;
+      }
+      cluster.idle();
+    }
+
+    logger.info(
+        "onLoadSnapshot => memberId: {}, applied new serviceCounter : {}",
+        cluster.memberId(),
+        serviceCounter.get());
   }
 
   @Override
@@ -151,7 +168,22 @@ public class ClusterService implements ClusteredService {
     logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
     // Schedule process of taking snapshot if on leader
     if (newRole == Role.LEADER) {
-      cluster.scheduleTimer(42, (long) (cluster.timeMs() + 1e4));
+      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+      if (snapshotDisposable != null) {
+        snapshotDisposable.dispose();
+      }
+      snapshotDisposable =
+          Flux.interval(SNAPSHOT_PERIOD)
+              .subscribe(
+                  i -> {
+                    boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
+                    logger.info("ToggleState to SNAPSHOT: " + result);
+                  },
+                  System.err::println);
+    } else {
+      if (snapshotDisposable != null) {
+        snapshotDisposable.dispose();
+      }
     }
   }
 

@@ -1,11 +1,10 @@
 package io.scalecube.acpoc;
 
 import io.scalecube.acpoc.ClusterClient.OnResponseListener;
+import java.time.Duration;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
 
 /** Runner to start the cluster client that continuously sends requests to cluster. */
 public class ClusterClientTest {
