@@ -16,6 +16,8 @@ public class ClusterClientTest {
    */
   public static void main(String[] args) {
     String baseDirName = Utils.tmpFileName("aeron-client");
+    System.out.println("BASE_AERON_DIR:" + baseDirName);
+
 
     OnResponseListener onResponseListener =
         (buffer, offset, length) -> {
