@@ -1,6 +1,5 @@
 package io.scalecube.acpoc;
 
-import io.aeron.CommonContext;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
@@ -34,8 +33,7 @@ public class ClusterJoinTest {
 
     String instanceId = System.getProperty("aeron.cluster.member.id", "0");
 
-    String aeronHome =
-        CommonContext.getAeronDirectoryName() + "-" + instanceId + "-" + System.currentTimeMillis();
+    String aeronHome = Utils.tmpFileName("aeron-" + instanceId);
 
     String aeronDirName = aeronHome + "/media";
 

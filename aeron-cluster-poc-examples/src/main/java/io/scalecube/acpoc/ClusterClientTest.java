@@ -1,11 +1,11 @@
 package io.scalecube.acpoc;
 
-import io.aeron.CommonContext;
 import io.scalecube.acpoc.ClusterClient.OnResponseListener;
-import java.time.Duration;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 /** Runner to start the cluster client that continuously sends requests to cluster. */
 public class ClusterClientTest {
@@ -15,9 +15,8 @@ public class ClusterClientTest {
    *
    * @param args program arguments.
    */
-  public static void main(String[] args) throws InterruptedException {
-    String baseDirName =
-        CommonContext.getAeronDirectoryName() + "-" + "client" + "-" + System.currentTimeMillis();
+  public static void main(String[] args) {
+    String baseDirName = Utils.tmpFileName("aeron-client");
 
     OnResponseListener onResponseListener =
         (buffer, offset, length) -> {
