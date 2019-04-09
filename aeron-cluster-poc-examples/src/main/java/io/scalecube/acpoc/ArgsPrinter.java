@@ -1,7 +1,12 @@
 package io.scalecube.acpoc;
 
+/** Helps to figure out the arguments to write starting scripts for cluster nodes. */
 public class ArgsPrinter {
 
+  /**
+   * Main method.
+   * @param args - command line arguments.
+   */
   public static void main(String[] args) {
     int staticNodesCnt = 3;
     int dynamicNodesCount = 2;
