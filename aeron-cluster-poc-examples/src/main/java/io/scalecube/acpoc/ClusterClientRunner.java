@@ -5,12 +5,16 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
 import org.agrona.IoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Runner to start the cluster client that continuously sends requests to cluster. */
 public class ClusterClientRunner {
+
+  public static final Logger logger = LoggerFactory.getLogger(ClusterClientRunner.class);
 
   /**
    * Main method.
@@ -30,7 +34,7 @@ public class ClusterClientRunner {
     OnResponseListener onResponseListener =
         (buffer, offset, length) -> {
           String content = buffer.getStringWithoutLengthUtf8(offset, length);
-          System.out.println("Client: received " + content);
+          logger.info("Client: RESPONSE received '" + content + "'");
         };
 
     ClusterClient client = new ClusterClient(clientDirName, onResponseListener);
@@ -40,7 +44,7 @@ public class ClusterClientRunner {
             .subscribe(
                 cnt -> {
                   long l = client.sendMessage("Hello to cluster " + cnt);
-                  System.out.println("sendMessage result: " + l);
+                  logger.info("Client: REQUEST send result=" + l);
                   client.poll();
                 });
 

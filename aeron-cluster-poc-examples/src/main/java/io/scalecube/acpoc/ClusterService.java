@@ -95,12 +95,12 @@ public class ClusterService implements ClusteredService {
         new String(bytes));
 
     // Updated service state
-    serviceCounter.incrementAndGet();
+    int value = serviceCounter.incrementAndGet();
 
-    // Send response back
-    while (session.offer(buffer, offset, length) < 0) {
-      Utils.checkInterruptedStatus();
-      Thread.yield();
+    if (cluster.role() == Role.LEADER) {
+      // Send response back
+      long l = session.offer(buffer, offset, length);
+      logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
     }
   }
 
@@ -157,6 +157,7 @@ public class ClusterService implements ClusteredService {
         break;
       }
       cluster.idle();
+      System.out.print(".");
     }
 
     logger.info(
