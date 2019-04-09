@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cd $(dirname $0)
-cd ../
+cd ../../
 
 JAR_FILE=$(ls target |grep jar)
 

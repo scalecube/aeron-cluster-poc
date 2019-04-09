@@ -76,7 +76,8 @@ public class ClusterClientBenchmark {
                 .aeronDirectoryName(clientDirName)
                 .ingressChannel("aeron:udp"));
 
-    Utils.onShutdown(
+    Mono<Void> onShutdown =
+        Utils.onShutdown(
             () -> {
               CloseHelper.close(client);
               CloseHelper.close(clientMediaDriver);
@@ -84,8 +85,8 @@ public class ClusterClientBenchmark {
                 IoUtil.delete(new File(clientDirName), true);
               }
               return null;
-            })
-        .subscribe();
+            });
+    onShutdown.subscribe();
 
     Thread.sleep(100);
     final ContinueBarrier barrier = new ContinueBarrier("Execute again?");

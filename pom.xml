@@ -31,7 +31,6 @@
     <disruptor.version>3.4.2</disruptor.version>
     <hdrHistogram.version>2.1.10</hdrHistogram.version>
     <scalecube.trace-reporter.version>0.0.7</scalecube.trace-reporter.version>
-    <checkstyle.skip>true</checkstyle.skip>
   </properties>
 
   <modules>
