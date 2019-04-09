@@ -2,12 +2,13 @@ package io.scalecube.acpoc;
 
 import io.scalecube.acpoc.ClusterClient.OnResponseListener;
 import java.time.Duration;
+import org.agrona.IoUtil;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /** Runner to start the cluster client that continuously sends requests to cluster. */
-public class ClusterClientTest {
+public class ClusterClientRunner {
 
   /**
    * Main method.
@@ -15,9 +16,10 @@ public class ClusterClientTest {
    * @param args program arguments.
    */
   public static void main(String[] args) {
-    String baseDirName = Utils.tmpFileName("aeron-client");
-    System.out.println("BASE_AERON_DIR:" + baseDirName);
 
+    String baseDirName = IoUtil.tmpDirName() + "aeron-cluster-client-" + Utils.getInstanceId();
+
+    System.out.println("BASE_AERON_DIR:" + baseDirName);
 
     OnResponseListener onResponseListener =
         (buffer, offset, length) -> {

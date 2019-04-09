@@ -20,9 +20,7 @@ import reactor.core.publisher.Mono;
  * Main class that starts single node in cluster, though expecting most of cluster configuration
  * passed via VM args.
  */
-public class ClusterJoinTest {
-
-  private static final long MAX_CATALOG_ENTRIES = 1024;
+public class ClusterJoinRunner {
 
   /**
    * Main function runner.
@@ -31,9 +29,7 @@ public class ClusterJoinTest {
    */
   public static void main(String[] args) {
 
-    String instanceId = System.getProperty("aeron.cluster.member.id", "0");
-
-    String aeronHome = Utils.tmpFileName("aeron-" + instanceId);
+    String aeronHome = IoUtil.tmpDirName() + "aeron-cluster-" + Utils.getInstanceId();
 
     String aeronDirName = aeronHome + "/media";
 
@@ -49,7 +45,7 @@ public class ClusterJoinTest {
 
     Archive.Context archiveContext =
         new Archive.Context()
-            .maxCatalogEntries(MAX_CATALOG_ENTRIES)
+            .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
             .aeronDirectoryName(aeronDirName)
             .archiveDir(new File(aeronHome, "archive"))
             .controlChannel(aeronArchiveContext.controlRequestChannel())
@@ -87,7 +83,7 @@ public class ClusterJoinTest {
             () -> {
               CloseHelper.close(clusteredMediaDriver);
               CloseHelper.close(clusteredServiceContainer);
-              IoUtil.delete(new File(aeronHome), true);
+              //IoUtil.delete(new File(aeronHome), true);
               return null;
             });
     onShutdown.block();

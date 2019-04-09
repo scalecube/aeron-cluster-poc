@@ -1,8 +1,7 @@
 package io.scalecube.acpoc;
 
-import java.util.UUID;
+import java.util.Optional;
 import java.util.concurrent.Callable;
-import org.agrona.IoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -16,20 +15,6 @@ public class Utils {
 
   private Utils() {
     // no-op
-  }
-
-  /**
-   * Creates tmp file with using the given value.
-   *
-   * @param value target.
-   */
-  public static String tmpFileName(String value) {
-    return IoUtil.tmpDirName()
-        + value
-        + '-'
-        + System.getProperty("user.name", "default")
-        + '-'
-        + UUID.randomUUID().toString();
   }
 
   /** In order to let interrupt the process, thi method is regularly called in 'waiting' loops. */
@@ -71,5 +56,15 @@ public class Utils {
     Signal.handle(new Signal("TERM"), handler);
 
     return onShutdown;
+  }
+
+  /**
+   * Returns instance id.
+   *
+   * @return instance id
+   */
+  public static String getInstanceId() {
+    return Optional.ofNullable(Configurations.INSTANCE_ID)
+        .orElseGet(() -> "" + System.currentTimeMillis());
   }
 }
