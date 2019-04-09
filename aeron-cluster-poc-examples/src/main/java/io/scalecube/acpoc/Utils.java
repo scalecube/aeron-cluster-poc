@@ -63,7 +63,7 @@ public class Utils {
    *
    * @return instance id
    */
-  public static String getInstanceId() {
+  public static String instanceId() {
     return Optional.ofNullable(Configurations.INSTANCE_ID)
         .orElseGet(() -> "" + System.currentTimeMillis());
   }

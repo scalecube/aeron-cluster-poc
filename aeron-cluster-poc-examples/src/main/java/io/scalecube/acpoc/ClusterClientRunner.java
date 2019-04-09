@@ -1,6 +1,8 @@
 package io.scalecube.acpoc;
 
 import io.scalecube.acpoc.ClusterClient.OnResponseListener;
+import java.io.File;
+import java.nio.file.Paths;
 import java.time.Duration;
 import org.agrona.IoUtil;
 import reactor.core.Disposable;
@@ -16,10 +18,14 @@ public class ClusterClientRunner {
    * @param args program arguments.
    */
   public static void main(String[] args) {
+    String clientId = "client-" + Utils.instanceId();
+    String clientDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", clientId).toString();
 
-    String baseDirName = IoUtil.tmpDirName() + "aeron-cluster-client-" + Utils.getInstanceId();
+    if (Configurations.CLEAN_START) {
+      IoUtil.delete(new File(clientDirName), true);
+    }
 
-    System.out.println("BASE_AERON_DIR:" + baseDirName);
+    System.out.println("Cluster client directory: " + clientDirName);
 
     OnResponseListener onResponseListener =
         (buffer, offset, length) -> {
@@ -27,7 +33,7 @@ public class ClusterClientRunner {
           System.out.println("Client: received " + content);
         };
 
-    ClusterClient client = new ClusterClient(baseDirName, onResponseListener);
+    ClusterClient client = new ClusterClient(clientDirName, onResponseListener);
 
     Disposable disposable =
         Flux.interval(Duration.ofSeconds(1))
@@ -43,6 +49,9 @@ public class ClusterClientRunner {
             () -> {
               disposable.dispose();
               client.close();
+              if (Configurations.CLEAN_SHUTDOWN) {
+                IoUtil.delete(new File(clientDirName), true);
+              }
               return null;
             });
     onShutdown.block();

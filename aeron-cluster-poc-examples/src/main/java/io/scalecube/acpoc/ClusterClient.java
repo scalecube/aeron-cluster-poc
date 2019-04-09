@@ -127,7 +127,6 @@ public class ClusterClient implements AutoCloseable {
   public void close() {
     CloseHelper.close(client);
     CloseHelper.close(clientMediaDriver);
-    clientMediaDriver.context().deleteAeronDirectory();
   }
 
   /** Represents response's callback. */
