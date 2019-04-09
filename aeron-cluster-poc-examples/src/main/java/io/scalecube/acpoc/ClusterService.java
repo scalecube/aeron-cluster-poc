@@ -11,7 +11,6 @@ import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -25,8 +24,6 @@ import reactor.core.publisher.Flux;
 public class ClusterService implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
-
-  private static final Duration SNAPSHOT_PERIOD = Duration.ofSeconds(20);
 
   private final CountersManager countersManager;
 
@@ -128,12 +125,14 @@ public class ClusterService implements ClusteredService {
         snapshotPublication.position());
 
     UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES]);
-    buffer.putInt(0, serviceCounter.get());
+    int value = serviceCounter.get();
+    buffer.putInt(0, value);
     long offer = snapshotPublication.offer(buffer);
 
     logger.info(
-        "onTakeSnapshot => memberId: {}, serviceCounter snapshot taken: {}",
+        "onTakeSnapshot => memberId: {}, serviceCounter(value={}) snapshot taken: {}",
         cluster.memberId(),
+        value,
         offer);
   }
 
@@ -161,7 +160,7 @@ public class ClusterService implements ClusteredService {
     }
 
     logger.info(
-        "onLoadSnapshot => memberId: {}, applied new serviceCounter : {}",
+        "onLoadSnapshot => memberId: {}, applied new serviceCounter(value={})",
         cluster.memberId(),
         serviceCounter.get());
   }
@@ -170,23 +169,19 @@ public class ClusterService implements ClusteredService {
   public void onRoleChange(Cluster.Role newRole) {
     logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
     // Schedule process of taking snapshot if on leader
+    if (snapshotDisposable != null) {
+      snapshotDisposable.dispose();
+    }
     if (newRole == Role.LEADER) {
       AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      if (snapshotDisposable != null) {
-        snapshotDisposable.dispose();
-      }
       snapshotDisposable =
-          Flux.interval(SNAPSHOT_PERIOD)
+          Flux.interval(Configurations.SNAPSHOT_PERIOD)
               .subscribe(
                   i -> {
                     boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
                     logger.info("ToggleState to SNAPSHOT: " + result);
                   },
                   System.err::println);
-    } else {
-      if (snapshotDisposable != null) {
-        snapshotDisposable.dispose();
-      }
     }
   }
 

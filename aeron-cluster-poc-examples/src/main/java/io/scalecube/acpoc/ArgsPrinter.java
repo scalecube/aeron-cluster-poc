@@ -2,6 +2,11 @@ package io.scalecube.acpoc;
 
 public class ArgsPrinter {
 
+  /**
+   * Main program runner.
+   *
+   * @param args arguments
+   */
   public static void main(String[] args) {
     int staticNodesCnt = 3;
     int dynamicNodesCount = 2;

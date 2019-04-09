@@ -7,7 +7,7 @@
     <artifactId>aeron-cluster-poc-parent</artifactId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
-  <artifactId>aeron-cluster-poc-example-server-logic</artifactId>
+  <artifactId>aeron-cluster-poc-examples</artifactId>
   <description>This is a basic example of aeron cluster logic: a distributed basic counter
   </description>
 
