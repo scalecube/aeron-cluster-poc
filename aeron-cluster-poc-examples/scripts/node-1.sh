@@ -7,6 +7,8 @@ JAR_FILE=$(ls target |grep jar)
 
 echo $JAR_FILE
 
+export logLevel=ERROR
+
 java \
   -cp target/${JAR_FILE}:target/lib/* \
 -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8011" \
@@ -20,6 +22,6 @@ java \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20551" \
 -Dio.scalecube.acpoc.instanceId=n1 \
--Dio.scalecube.acpoc.cleanStart=false \
--Dio.scalecube.acpoc.cleanShutdown=false \
+-Dio.scalecube.acpoc.cleanStart=true \
+-Dio.scalecube.acpoc.cleanShutdown=true \
   ${JVM_OPTS} io.scalecube.acpoc.ClusterServiceRunner
