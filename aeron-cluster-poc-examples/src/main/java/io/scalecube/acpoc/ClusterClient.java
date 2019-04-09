@@ -100,7 +100,7 @@ public class ClusterClient implements AutoCloseable {
     this.client =
         AeronCluster.connect(
             new AeronCluster.Context()
-                .errorHandler(System.err::println)
+                .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
                 .egressListener(new EgressListenerImpl(onResponse))
                 .aeronDirectoryName(aeronDirName)
                 .ingressChannel("aeron:udp"));

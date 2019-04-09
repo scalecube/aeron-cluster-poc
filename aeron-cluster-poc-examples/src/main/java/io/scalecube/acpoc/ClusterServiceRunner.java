@@ -5,6 +5,7 @@ import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
+import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
@@ -15,6 +16,8 @@ import java.io.File;
 import java.nio.file.Paths;
 import org.agrona.CloseHelper;
 import org.agrona.IoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
@@ -23,14 +26,16 @@ import reactor.core.publisher.Mono;
  */
 public class ClusterServiceRunner {
 
+  private static final Logger logger = LoggerFactory.getLogger(ClusterServiceRunner.class);
+
   /**
    * Main function runner.
    *
    * @param args arguments
    */
   public static void main(String[] args) {
-    String nodeId =
-        "node-" + ConsensusModule.Configuration.clusterMemberId() + "-" + Utils.instanceId();
+    String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
+    String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", nodeId).toString();
 
     if (Configurations.CLEAN_START) {
@@ -46,7 +51,7 @@ public class ClusterServiceRunner {
 
     MediaDriver.Context mediaDriverContest =
         new Context()
-            .errorHandler(System.err::println)
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
             .threadingMode(ThreadingMode.SHARED)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
@@ -64,7 +69,7 @@ public class ClusterServiceRunner {
 
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
-            .errorHandler(System.err::println)
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
             .clusterDir(new File(nodeDirName, "consensus-module"))
             .archiveContext(aeronArchiveContext.clone());
@@ -77,7 +82,7 @@ public class ClusterServiceRunner {
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
-            .errorHandler(System.err::println)
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(nodeDirName, "service"))
