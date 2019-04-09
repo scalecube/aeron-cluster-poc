@@ -31,6 +31,10 @@ public class ClusterJoinRunner {
 
     String aeronHome = IoUtil.tmpDirName() + "aeron-cluster-" + Utils.getInstanceId();
 
+    if (Configurations.CLEAN_START) {
+      IoUtil.delete(new File(aeronHome), true);
+    }
+
     String aeronDirName = aeronHome + "/media";
 
     AeronArchive.Context aeronArchiveContext =
@@ -83,7 +87,9 @@ public class ClusterJoinRunner {
             () -> {
               CloseHelper.close(clusteredMediaDriver);
               CloseHelper.close(clusteredServiceContainer);
-              //IoUtil.delete(new File(aeronHome), true);
+              if (Configurations.CLEAN_ON_SHUTDOWN) {
+                IoUtil.delete(new File(aeronHome), true);
+              }
               return null;
             });
     onShutdown.block();

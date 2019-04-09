@@ -1,6 +1,7 @@
 package io.scalecube.acpoc;
 
 import io.scalecube.acpoc.ClusterClient.OnResponseListener;
+import java.io.File;
 import java.time.Duration;
 import org.agrona.IoUtil;
 import reactor.core.Disposable;
@@ -18,6 +19,10 @@ public class ClusterClientRunner {
   public static void main(String[] args) {
 
     String baseDirName = IoUtil.tmpDirName() + "aeron-cluster-client-" + Utils.getInstanceId();
+
+    if (Configurations.CLEAN_START) {
+      IoUtil.delete(new File(baseDirName), true);
+    }
 
     System.out.println("BASE_AERON_DIR:" + baseDirName);
 

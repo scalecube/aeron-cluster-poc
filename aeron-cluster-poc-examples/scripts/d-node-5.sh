@@ -21,5 +21,7 @@ java \
 -Daeron.cluster.members.status.endpoints="localhost:20220,localhost:20221,localhost:20222" \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20554" \
+-Dio.scalecube.acpoc.cleanOnShutdown=true \
+-Dio.scalecube.acpoc.cleanStart=true \
   ${JVM_OPTS} io.scalecube.acpoc.ClusterJoinRunner
 
