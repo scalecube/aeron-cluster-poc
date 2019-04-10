@@ -11,6 +11,7 @@ import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ClusteredServiceImpl implements ClusteredService {
 
@@ -178,7 +180,10 @@ public class ClusteredServiceImpl implements ClusteredService {
       snapshotDisposable.dispose();
     }
     if (newRole == Role.LEADER) {
-      scheduleSnaphot();
+      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+      scheduleSnaphot(controlToggle);
+      // schedule(controlToggle, ToggleState.SUSPEND, Duration.ofSeconds(20));
+      // schedule(controlToggle, ToggleState.RESUME, Duration.ofSeconds(25));
     }
   }
 
@@ -191,15 +196,24 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.clientSessions().size());
   }
 
-  private void scheduleSnaphot() {
-    AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+  private void scheduleSnaphot(AtomicCounter controlToggle) {
     snapshotDisposable =
         Flux.interval(Configurations.SNAPSHOT_PERIOD)
-            .subscribe(
-                i -> {
-                  boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
-                  logger.info("ToggleState to SNAPSHOT: " + result);
-                },
-                System.err::println);
+            .subscribe(i -> toggle(controlToggle, ToggleState.SNAPSHOT), System.err::println);
+  }
+
+  private void schedule(AtomicCounter controlToggle, ToggleState target, Duration delay) {
+    Mono.delay(delay).subscribe(i -> toggle(controlToggle, target), System.err::println);
+  }
+
+  private void toggle(AtomicCounter controlToggle, ToggleState target) {
+    ToggleState oldToggleState = ToggleState.get(controlToggle);
+    boolean result = target.toggle(controlToggle);
+    ToggleState newToggleState = ToggleState.get(controlToggle);
+    logger.info(
+        "ToggleState changed {}: {}->{}",
+        result ? "succesfuly" : "unsuccesfuly",
+        oldToggleState,
+        newToggleState);
   }
 }
