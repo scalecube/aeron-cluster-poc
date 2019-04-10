@@ -21,9 +21,9 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-public class ClusterService implements ClusteredService {
+public class ClusteredServiceImpl implements ClusteredService {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceImpl.class);
 
   private final CountersManager countersManager;
 
@@ -35,7 +35,7 @@ public class ClusterService implements ClusteredService {
 
   private Disposable snapshotDisposable;
 
-  public ClusterService(CountersManager countersManager) {
+  public ClusteredServiceImpl(CountersManager countersManager) {
     this.countersManager = countersManager;
   }
 
@@ -85,21 +85,25 @@ public class ClusterService implements ClusteredService {
     byte[] bytes = new byte[length];
     buffer.getBytes(offset, bytes);
 
+    String message = new String(bytes);
+
     logger.info(
         "onSessionMessage, timestampMs: {} => memberId: {}, "
-            + "sessionId: {}, position: {}, content: {}",
+            + "sessionId: {}, position: {}, content: '{}'",
         timestampMs,
         cluster.memberId(),
         session.id(),
         header.position(),
-        new String(bytes));
+        message);
 
     // Updated service state
     int value = serviceCounter.incrementAndGet();
 
     if (cluster.role() == Role.LEADER) {
       // Send response back
-      long l = session.offer(buffer, offset, length);
+      String response = message + ", ClusteredService.serviceCounter(value=" + value + ")";
+      UnsafeBuffer buffer1 = new UnsafeBuffer(response.getBytes());
+      long l = session.offer(buffer1, 0, buffer1.capacity());
       logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
     }
   }
@@ -174,15 +178,7 @@ public class ClusterService implements ClusteredService {
       snapshotDisposable.dispose();
     }
     if (newRole == Role.LEADER) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      snapshotDisposable =
-          Flux.interval(Configurations.SNAPSHOT_PERIOD)
-              .subscribe(
-                  i -> {
-                    boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
-                    logger.info("ToggleState to SNAPSHOT: " + result);
-                  },
-                  System.err::println);
+      scheduleSnaphot();
     }
   }
 
@@ -193,5 +189,17 @@ public class ClusterService implements ClusteredService {
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+  }
+
+  private void scheduleSnaphot() {
+    AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+    snapshotDisposable =
+        Flux.interval(Configurations.SNAPSHOT_PERIOD)
+            .subscribe(
+                i -> {
+                  boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
+                  logger.info("ToggleState to SNAPSHOT: " + result);
+                },
+                System.err::println);
   }
 }

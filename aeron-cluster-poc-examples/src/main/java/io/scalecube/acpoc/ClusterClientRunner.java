@@ -42,9 +42,10 @@ public class ClusterClientRunner {
     Disposable disposable =
         Flux.interval(Duration.ofSeconds(1))
             .subscribe(
-                cnt -> {
-                  long l = client.sendMessage("Hello to cluster " + cnt);
-                  logger.info("Client: REQUEST send result=" + l);
+                i -> {
+                  String request = "Hello to cluster " + i;
+                  long l = client.sendMessage(request);
+                  logger.info("Client: REQUEST {} send, result={}", i, l);
                   client.poll();
                 });
 
