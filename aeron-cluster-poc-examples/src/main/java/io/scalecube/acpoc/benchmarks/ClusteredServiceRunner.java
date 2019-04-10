@@ -1,4 +1,4 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
@@ -6,12 +6,12 @@ import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
-import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
+import io.scalecube.acpoc.Configurations;
+import io.scalecube.acpoc.Utils;
 import java.io.File;
 import java.nio.file.Paths;
 import org.agrona.CloseHelper;
@@ -24,9 +24,9 @@ import reactor.core.publisher.Mono;
  * Main class that starts single node in cluster, though expecting most of cluster configuration
  * passed via VM args.
  */
-public class ClusterServiceRunner {
+public class ClusteredServiceRunner {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterServiceRunner.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceRunner.class);
 
   /**
    * Main function runner.
@@ -49,7 +49,7 @@ public class ClusterServiceRunner {
     AeronArchive.Context aeronArchiveContext =
         new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
-    MediaDriver.Context mediaDriverContest =
+    Context mediaDriverContest =
         new Context()
             .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
@@ -77,16 +77,13 @@ public class ClusterServiceRunner {
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
 
-    ClusteredService clusteredService =
-        new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
-
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
             .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(nodeDirName, "service"))
-            .clusteredService(clusteredService);
+            .clusteredService(new BenchmarkClusteredService());
 
     ClusteredServiceContainer clusteredServiceContainer =
         ClusteredServiceContainer.launch(clusteredServiceCtx);

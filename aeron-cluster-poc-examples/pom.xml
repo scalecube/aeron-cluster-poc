@@ -53,6 +53,15 @@
       <groupId>com.lmax</groupId>
       <artifactId>disruptor</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>trace-reporter</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

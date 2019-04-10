@@ -1,43 +1,22 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.Image;
 import io.aeron.Publication;
-import io.aeron.cluster.ClusterControl;
-import io.aeron.cluster.ClusterControl.ToggleState;
 import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
-import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
-import org.agrona.concurrent.UnsafeBuffer;
-import org.agrona.concurrent.status.AtomicCounter;
-import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
 
-public class ClusterService implements ClusteredService {
+public class BenchmarkClusteredService implements ClusteredService {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
-
-  private final CountersManager countersManager;
+  private static final Logger logger = LoggerFactory.getLogger(BenchmarkClusteredService.class);
 
   private Cluster cluster;
-
-  // State
-
-  private final AtomicInteger serviceCounter = new AtomicInteger();
-
-  private Disposable snapshotDisposable;
-
-  public ClusterService(CountersManager countersManager) {
-    this.countersManager = countersManager;
-  }
 
   @Override
   public void onStart(Cluster cluster) {
@@ -82,25 +61,9 @@ public class ClusterService implements ClusteredService {
       int offset,
       int length,
       Header header) {
-    byte[] bytes = new byte[length];
-    buffer.getBytes(offset, bytes);
-
-    logger.info(
-        "onSessionMessage, timestampMs: {} => memberId: {}, "
-            + "sessionId: {}, position: {}, content: {}",
-        timestampMs,
-        cluster.memberId(),
-        session.id(),
-        header.position(),
-        new String(bytes));
-
-    // Updated service state
-    int value = serviceCounter.incrementAndGet();
-
     if (cluster.role() == Role.LEADER) {
       // Send response back
-      long l = session.offer(buffer, offset, length);
-      logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+      session.offer(buffer, offset, length);
     }
   }
 
@@ -123,17 +86,6 @@ public class ClusterService implements ClusteredService {
         snapshotPublication.channel(),
         snapshotPublication.streamId(),
         snapshotPublication.position());
-
-    UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES]);
-    int value = serviceCounter.get();
-    buffer.putInt(0, value);
-    long offer = snapshotPublication.offer(buffer);
-
-    logger.info(
-        "onTakeSnapshot => memberId: {}, serviceCounter(value={}) snapshot taken: {}",
-        cluster.memberId(),
-        value,
-        offer);
   }
 
   @Override
@@ -146,44 +98,11 @@ public class ClusterService implements ClusteredService {
         snapshotImage.subscription().channel(),
         snapshotImage.subscription().streamId(),
         snapshotImage.position());
-
-    FragmentHandler handler =
-        (buffer, offset, length, header) -> serviceCounter.set(buffer.getInt(offset));
-
-    while (true) {
-      int fragments = snapshotImage.poll(handler, 1);
-
-      if (fragments == 1) {
-        break;
-      }
-      cluster.idle();
-      System.out.print(".");
-    }
-
-    logger.info(
-        "onLoadSnapshot => memberId: {}, applied new serviceCounter(value={})",
-        cluster.memberId(),
-        serviceCounter.get());
   }
 
   @Override
-  public void onRoleChange(Cluster.Role newRole) {
+  public void onRoleChange(Role newRole) {
     logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
-    // Schedule process of taking snapshot if on leader
-    if (snapshotDisposable != null) {
-      snapshotDisposable.dispose();
-    }
-    if (newRole == Role.LEADER) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      snapshotDisposable =
-          Flux.interval(Configurations.SNAPSHOT_PERIOD)
-              .subscribe(
-                  i -> {
-                    boolean result = ToggleState.SNAPSHOT.toggle(controlToggle);
-                    logger.info("ToggleState to SNAPSHOT: " + result);
-                  },
-                  System.err::println);
-    }
   }
 
   @Override
