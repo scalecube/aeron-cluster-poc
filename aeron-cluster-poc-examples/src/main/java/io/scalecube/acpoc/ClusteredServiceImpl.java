@@ -8,7 +8,6 @@ import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
 import io.aeron.cluster.service.Cluster.Role;
-import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,9 +20,9 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-public class ClusterService implements ClusteredService {
+public class ClusteredServiceImpl implements io.aeron.cluster.service.ClusteredService {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterService.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceImpl.class);
 
   private final CountersManager countersManager;
 
@@ -35,7 +34,7 @@ public class ClusterService implements ClusteredService {
 
   private Disposable snapshotDisposable;
 
-  public ClusterService(CountersManager countersManager) {
+  public ClusteredServiceImpl(CountersManager countersManager) {
     this.countersManager = countersManager;
   }
 

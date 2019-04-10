@@ -15,10 +15,13 @@ public class Configurations {
   public static final boolean CLEAN_START = Boolean.getBoolean("io.scalecube.acpoc.cleanStart");
   public static final boolean CLEAN_SHUTDOWN =
       Boolean.getBoolean("io.scalecube.acpoc.cleanShutdown");
+
+  // --------------------------------------------------
+  // -- benchmark settings ----------------------------
+  // --------------------------------------------------
+
   public static final int MESSAGE_LENGTH =
       Integer.getInteger("io.scalecube.acpoc.messageLength", 32);
-  public static final int FRAGMENT_COUNT_LIMIT =
-      Integer.getInteger("io.scalecube.acpoc.frameCountLimit", 10);
   public static final long REPORT_INTERVAL = Long.getLong("io.scalecube.acpoc.report.interval", 1);
   public static final long WARMUP_REPORT_DELAY =
       Long.getLong("io.scalecube.acpoc.report.delay", REPORT_INTERVAL);
