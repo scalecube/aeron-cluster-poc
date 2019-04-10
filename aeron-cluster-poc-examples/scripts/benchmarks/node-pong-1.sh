@@ -15,7 +15,7 @@ java \
   -XX:GuaranteedSafepointInterval=300000 \
   -Daeron.threading.mode=SHARED \
   -Dagrona.disable.bounds.checks=true \
-  -Daeron.mtu.length=4k \
+  -Daeron.mtu.length=8k \
   -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8011" \
   -Daeron.archive.control.stream.id="100" \
   -Daeron.archive.control.response.channel="aeron:udp?term-length=64k|endpoint=localhost:8021" \

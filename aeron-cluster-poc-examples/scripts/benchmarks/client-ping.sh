@@ -16,6 +16,6 @@ java \
   -Daeron.mtu.length=16k \
   -Daeron.cluster.member.endpoints="0=localhost:20110,1=localhost:20111,2=localhost:20112" \
   -Dio.scalecube.acpoc.messageLength=256 \
-  -Dio.scalecube.acpoc.request=128 \
+  -Dio.scalecube.acpoc.request=16 \
   ${JVM_OPTS} io.scalecube.acpoc.benchmarks.ClusterClientPing
 
