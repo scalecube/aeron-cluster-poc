@@ -6,6 +6,7 @@ import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
+import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
@@ -76,7 +77,7 @@ public class ClusterServiceRunner {
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
 
-    io.aeron.cluster.service.ClusteredService clusteredService =
+    ClusteredService clusteredService =
         new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
