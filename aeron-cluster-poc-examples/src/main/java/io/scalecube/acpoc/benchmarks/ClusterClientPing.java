@@ -1,4 +1,4 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
@@ -6,6 +6,8 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
 import io.aeron.logbuffer.Header;
+import io.scalecube.acpoc.Configurations;
+import io.scalecube.acpoc.Utils;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -26,14 +28,14 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
 /** Runner to start the cluster client that continuously sends requests to cluster. */
-public class ClusterClientBenchmark {
+public class ClusterClientPing {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterClientBenchmark.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusterClientPing.class);
 
-  private static final int MESSAGE_LENGTH = Configurations.MESSAGE_LENGTH;
-  private static final long NUMBER_OF_MESSAGES = Configurations.NUMBER_OF_MESSAGES;
+  private static final int MESSAGE_LENGTH = BenchmarkConfigurations.MESSAGE_LENGTH;
+  private static final long NUMBER_OF_MESSAGES = BenchmarkConfigurations.NUMBER_OF_MESSAGES;
 
-  private static final int REQUESTED = Configurations.REQUESTED;
+  private static final int REQUESTED = BenchmarkConfigurations.REQUESTED;
 
   private static final UnsafeBuffer OFFER_BUFFER =
       new UnsafeBuffer(BufferUtil.allocateDirectAligned(MESSAGE_LENGTH, BitUtil.CACHE_LINE_LENGTH));

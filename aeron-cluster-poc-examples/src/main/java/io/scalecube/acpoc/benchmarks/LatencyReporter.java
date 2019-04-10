@@ -1,4 +1,4 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.scalecube.trace.TraceReporter;
 import io.scalecube.trace.jsonbin.JsonbinResponse;
@@ -17,7 +17,7 @@ public class LatencyReporter {
   private final String name;
 
   public LatencyReporter(Recorder histogram) {
-    this(histogram, Configurations.REPORT_NAME);
+    this(histogram, BenchmarkConfigurations.REPORT_NAME);
   }
 
   public LatencyReporter(Recorder histogram, String name) {
@@ -34,8 +34,8 @@ public class LatencyReporter {
     if (reporter.isActive()) {
       return Disposables.composite(
           Flux.interval(
-                  Duration.ofSeconds(Configurations.WARMUP_REPORT_DELAY),
-                  Duration.ofSeconds(Configurations.TRACE_REPORTER_INTERVAL))
+                  Duration.ofSeconds(BenchmarkConfigurations.WARMUP_REPORT_DELAY),
+                  Duration.ofSeconds(BenchmarkConfigurations.TRACE_REPORTER_INTERVAL))
               .publishOn(Schedulers.single())
               .flatMap(
                   i ->
@@ -45,13 +45,13 @@ public class LatencyReporter {
                           .flatMap(
                               res ->
                                   reporter.dumpToFile(
-                                      Configurations.TARGET_FOLDER_FOLDER_LATENCY,
+                                      BenchmarkConfigurations.TARGET_FOLDER_FOLDER_LATENCY,
                                       res.name(),
                                       res)))
               .subscribe(),
           Flux.interval(
-                  Duration.ofSeconds(Configurations.WARMUP_REPORT_DELAY),
-                  Duration.ofSeconds(Configurations.REPORT_INTERVAL))
+                  Duration.ofSeconds(BenchmarkConfigurations.WARMUP_REPORT_DELAY),
+                  Duration.ofSeconds(BenchmarkConfigurations.REPORT_INTERVAL))
               .publishOn(Schedulers.single())
               .doOnNext(
                   i ->
@@ -59,8 +59,8 @@ public class LatencyReporter {
               .subscribe());
     }
     return Flux.interval(
-            Duration.ofSeconds(Configurations.WARMUP_REPORT_DELAY),
-            Duration.ofSeconds(Configurations.REPORT_INTERVAL))
+            Duration.ofSeconds(BenchmarkConfigurations.WARMUP_REPORT_DELAY),
+            Duration.ofSeconds(BenchmarkConfigurations.REPORT_INTERVAL))
         .publishOn(Schedulers.single())
         .doOnNext(
             i -> {

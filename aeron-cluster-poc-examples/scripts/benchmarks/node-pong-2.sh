@@ -15,7 +15,7 @@ java \
   -XX:GuaranteedSafepointInterval=300000 \
   -Daeron.threading.mode=SHARED \
   -Dagrona.disable.bounds.checks=true \
-  -Daeron.mtu.length=16k \
+  -Daeron.mtu.length=4k \
   -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8012" \
   -Daeron.archive.control.stream.id="100" \
   -Daeron.archive.control.response.channel="aeron:udp?term-length=64k|endpoint=localhost:8022" \
@@ -29,4 +29,4 @@ java \
   -Dio.scalecube.acpoc.instanceId=n2 \
   -Dio.scalecube.acpoc.cleanStart=true \
   -Dio.scalecube.acpoc.cleanShutdown=true \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusterServiceRunner
+  ${JVM_OPTS} io.scalecube.acpoc.benchmarks.ClusteredServiceRunner
