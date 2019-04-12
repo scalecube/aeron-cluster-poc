@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cd $(dirname $0)
-cd ../../
+cd ../
 
 JAR_FILE=$(ls target |grep jar)
 
@@ -21,5 +21,7 @@ java \
 -Daeron.cluster.members.status.endpoints="localhost:20220,localhost:20221,localhost:20222" \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20554" \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusterJoinTest
+-Dio.scalecube.acpoc.cleanStart=true \
+-Dio.scalecube.acpoc.cleanShutdown=true \
+  ${JVM_OPTS} io.scalecube.acpoc.ClusterServiceRunner
 

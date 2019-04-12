@@ -1,28 +1,32 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
-import io.aeron.cluster.service.ClusteredService;
+import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
+import io.scalecube.acpoc.Configurations;
+import io.scalecube.acpoc.Utils;
 import java.io.File;
+import java.nio.file.Paths;
 import org.agrona.CloseHelper;
 import org.agrona.IoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
  * Main class that starts single node in cluster, though expecting most of cluster configuration
  * passed via VM args.
  */
-public class ClusterJoinTest {
+public class ClusteredServiceRunner {
 
-  private static final long MAX_CATALOG_ENTRIES = 1024;
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceRunner.class);
 
   /**
    * Main function runner.
@@ -30,28 +34,33 @@ public class ClusterJoinTest {
    * @param args arguments
    */
   public static void main(String[] args) {
+    String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
+    String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
+    String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", nodeId).toString();
 
-    String instanceId = System.getProperty("aeron.cluster.member.id", "0");
+    if (Configurations.CLEAN_START) {
+      IoUtil.delete(new File(nodeDirName), true);
+    }
 
-    String aeronHome = Utils.tmpFileName("aeron-" + instanceId);
+    System.out.println("Cluster node directory: " + nodeDirName);
 
-    String aeronDirName = aeronHome + "/media";
+    String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
     AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(aeronDirName);
+        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
-    MediaDriver.Context mediaDriverContest =
+    Context mediaDriverContest =
         new Context()
-            .errorHandler(System.err::println)
-            .aeronDirectoryName(aeronDirName)
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+            .aeronDirectoryName(aeronDirectoryName)
             .threadingMode(ThreadingMode.SHARED)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
     Archive.Context archiveContext =
         new Archive.Context()
-            .maxCatalogEntries(MAX_CATALOG_ENTRIES)
-            .aeronDirectoryName(aeronDirName)
-            .archiveDir(new File(aeronHome, "archive"))
+            .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
+            .aeronDirectoryName(aeronDirectoryName)
+            .archiveDir(new File(nodeDirName, "archive"))
             .controlChannel(aeronArchiveContext.controlRequestChannel())
             .controlStreamId(aeronArchiveContext.controlRequestStreamId())
             .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
@@ -60,24 +69,21 @@ public class ClusterJoinTest {
 
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
-            .errorHandler(System.err::println)
-            .aeronDirectoryName(aeronDirName)
-            .clusterDir(new File(aeronHome, "consensus-module"))
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+            .aeronDirectoryName(aeronDirectoryName)
+            .clusterDir(new File(nodeDirName, "consensus-module"))
             .archiveContext(aeronArchiveContext.clone());
 
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(mediaDriverContest, archiveContext, consensusModuleCtx);
 
-    ClusteredService clusteredService =
-        new ClusterService(clusteredMediaDriver.mediaDriver().context().countersManager());
-
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
-            .errorHandler(System.err::println)
-            .aeronDirectoryName(aeronDirName)
+            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+            .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone())
-            .clusterDir(new File(aeronHome, "service"))
-            .clusteredService(clusteredService);
+            .clusterDir(new File(nodeDirName, "service"))
+            .clusteredService(new BenchmarkClusteredService());
 
     ClusteredServiceContainer clusteredServiceContainer =
         ClusteredServiceContainer.launch(clusteredServiceCtx);
@@ -87,7 +93,9 @@ public class ClusterJoinTest {
             () -> {
               CloseHelper.close(clusteredMediaDriver);
               CloseHelper.close(clusteredServiceContainer);
-              IoUtil.delete(new File(aeronHome), true);
+              if (Configurations.CLEAN_SHUTDOWN) {
+                IoUtil.delete(new File(nodeDirName), true);
+              }
               return null;
             });
     onShutdown.block();
