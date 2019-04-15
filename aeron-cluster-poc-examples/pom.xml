@@ -7,7 +7,7 @@
     <artifactId>aeron-cluster-poc-parent</artifactId>
     <version>0.0.2-SNAPSHOT</version>
   </parent>
-  <artifactId>aeron-cluster-poc-example-server-logic</artifactId>
+  <artifactId>aeron-cluster-poc-examples</artifactId>
   <description>This is a basic example of aeron cluster logic: a distributed basic counter
   </description>
 
@@ -52,6 +52,15 @@
     <dependency>
       <groupId>com.lmax</groupId>
       <artifactId>disruptor</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>trace-reporter</artifactId>
     </dependency>
   </dependencies>
 

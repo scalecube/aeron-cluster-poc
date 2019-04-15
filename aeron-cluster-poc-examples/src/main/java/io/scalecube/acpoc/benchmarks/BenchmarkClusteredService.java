@@ -1,19 +1,20 @@
-package io.scalecube.acpoc;
+package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.Image;
 import io.aeron.Publication;
 import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
+import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.Header;
 import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CounterService implements ClusteredService {
+public class BenchmarkClusteredService implements ClusteredService {
 
-  private static final Logger logger = LoggerFactory.getLogger(CounterService.class);
+  private static final Logger logger = LoggerFactory.getLogger(BenchmarkClusteredService.class);
 
   private Cluster cluster;
 
@@ -30,9 +31,10 @@ public class CounterService implements ClusteredService {
   @Override
   public void onSessionOpen(ClientSession session, long timestampMs) {
     logger.info(
-        "onSessionOpen, timestampMs: {} => memberId: {}, sessionId: {}, channel: {}, streamId: {}",
-        cluster.memberId(),
+        "onSessionOpen, timestampMs: {} => memberId: {}, sessionId: {}, "
+            + "responseChannel: {}, responseStreamId: {}",
         timestampMs,
+        cluster.memberId(),
         session.id(),
         session.responseChannel(),
         session.responseStreamId());
@@ -42,9 +44,9 @@ public class CounterService implements ClusteredService {
   public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason) {
     logger.info(
         "onSessionClose, timestampMs: {} => memberId: {}, "
-            + "sessionId: {}, channel: {}, streamId: {}, reason: {}",
-        cluster.memberId(),
+            + "sessionId: {}, responseChannel: {}, responseStreamId: {}, reason: {}",
         timestampMs,
+        cluster.memberId(),
         session.id(),
         session.responseChannel(),
         session.responseStreamId(),
@@ -59,22 +61,18 @@ public class CounterService implements ClusteredService {
       int offset,
       int length,
       Header header) {
-    logger.info(
-        "onSessionMessage, timestampMs: {} => memberId: {}, "
-            + "sessionId: {}, position: {}, content: {}",
-        cluster.memberId(),
-        timestampMs,
-        session.id(),
-        header.position(),
-        buffer.getStringWithoutLengthAscii(offset, length));
+    if (cluster.role() == Role.LEADER) {
+      // Send response back
+      session.offer(buffer, offset, length);
+    }
   }
 
   @Override
   public void onTimerEvent(long correlationId, long timestampMs) {
     logger.info(
         "onTimerEvent, timestampMs: {} => memberId: {}, correlationId: {}",
-        cluster.memberId(),
         timestampMs,
+        cluster.memberId(),
         correlationId);
   }
 
@@ -103,7 +101,7 @@ public class CounterService implements ClusteredService {
   }
 
   @Override
-  public void onRoleChange(Cluster.Role newRole) {
+  public void onRoleChange(Role newRole) {
     logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
   }
 
