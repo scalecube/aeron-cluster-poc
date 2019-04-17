@@ -8,7 +8,7 @@
   byteOrder="littleEndian">
   <types>
     <type name="intEnumEncoding" primitiveType="uint8"/>
-    <type name="idString" length="32" primitiveType="char" characterEncoding="ISO_8859_1"/>
+    <type name="idString" length="36" primitiveType="char" characterEncoding="ISO_8859_1"/>
 
     <composite name="messageHeader" description="Message identifiers and length of message root">
       <type name="blockLength" primitiveType="uint16"/>
@@ -40,11 +40,11 @@
 
   </types>
 
-  <sbe:message name="MatchingEngineStartMark" blockLength="32" id="1001">
+  <sbe:message name="MatchingEngineStartMark" blockLength="36" id="1001">
     <field name="instrumentId"      id="1" type="idString" offset="0" semanticType="String"/>
   </sbe:message>
 
-  <sbe:message name="MatchingEngineEndMark" blockLength="32" id="1002">
+  <sbe:message name="MatchingEngineEndMark" blockLength="36" id="1002">
     <field name="instrumentId"      id="2" type="idString" offset="0" semanticType="String"/>
   </sbe:message>
 
@@ -53,12 +53,12 @@
     <field name="side"              id="2" type="OrderSide" offset="64" description="order side"/>
   </sbe:message>
 
-  <sbe:message name="Order" id="1004" blockLength="162" description="Order">
+  <sbe:message name="Order" id="1004" blockLength="166" description="Order">
     <field name="externalOrderId"   id="1" type="idString" offset="0" semanticType="String"/>
-    <field name="originalQuantity"  id="2" type="int64" offset="32"/>
-    <field name="remainingQuantity" id="3" type="int64" offset="96"/>
-    <field name="orderType"         id="4" type="OrderType" offset="160"/>
-    <field name="isMarketMaker"     id="5" type="BooleanType" offset="161" semanticType="Boolean"/>
+    <field name="originalQuantity"  id="2" type="int64" offset="36"/>
+    <field name="remainingQuantity" id="3" type="int64" offset="100"/>
+    <field name="orderType"         id="4" type="OrderType" offset="164"/>
+    <field name="isMarketMaker"     id="5" type="BooleanType" offset="165" semanticType="Boolean"/>
   </sbe:message>
 
 </sbe:messageSchema>

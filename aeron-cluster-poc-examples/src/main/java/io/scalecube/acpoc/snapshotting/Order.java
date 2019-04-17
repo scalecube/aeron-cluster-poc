@@ -11,6 +11,7 @@ public class Order {
   public final PriceLevel level;
   public final boolean isMarketMaker;
 
+  /** Creator. */
   public Order(
       PriceLevel level,
       String externalOrderId,

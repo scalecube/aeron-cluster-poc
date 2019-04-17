@@ -22,6 +22,7 @@ public class FifoMatchingEngine {
   private final FifoMatchingEngineSnapshotTaker snapshotTaker =
       new FifoMatchingEngineSnapshotTaker();
 
+  /** Creator. */
   public FifoMatchingEngine(
       String instrumentId, Map<Long, PriceLevel> bids, Map<Long, PriceLevel> asks) {
     this.bids = bids;
@@ -60,9 +61,10 @@ public class FifoMatchingEngine {
     }
 
     private void storeMatchingEngineInfo(Cluster cluster, Publication publication) {
+      int length =
+          MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineStartMarkEncoder.BLOCK_LENGTH;
       while (true) {
-        final long result =
-            publication.tryClaim(MatchingEngineStartMarkEncoder.BLOCK_LENGTH, bufferClaim);
+        final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
           matchingEngineStartMarkEncoder
@@ -77,9 +79,9 @@ public class FifoMatchingEngine {
     }
 
     private void storePriceLevel(Cluster cluster, Publication publication, PriceLevel priceLevel) {
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + PriceLevelStartMarkEncoder.BLOCK_LENGTH;
       while (true) {
-        final long result =
-            publication.tryClaim(PriceLevelStartMarkEncoder.BLOCK_LENGTH, bufferClaim);
+        final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
           priceLevelStartMarkEncoder
@@ -96,9 +98,10 @@ public class FifoMatchingEngine {
     }
 
     private void storeOrders(Cluster cluster, Publication publication, PriceLevel priceLevel) {
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + OrderEncoder.BLOCK_LENGTH;
       for (Order order : priceLevel.orders) {
         while (true) {
-          final long result = publication.tryClaim(OrderEncoder.BLOCK_LENGTH, bufferClaim);
+          final long result = publication.tryClaim(length, bufferClaim);
 
           if (result > 0) {
             orderEncoder
@@ -119,9 +122,9 @@ public class FifoMatchingEngine {
     }
 
     private void markEnd(Cluster cluster, Publication publication) {
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEndMarkEncoder.BLOCK_LENGTH;
       while (true) {
-        final long result =
-            publication.tryClaim(MatchingEngineEndMarkEncoder.BLOCK_LENGTH, bufferClaim);
+        final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
           matchingEngineEndMarkEncoder
