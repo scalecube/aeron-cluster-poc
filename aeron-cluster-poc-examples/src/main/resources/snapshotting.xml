@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe"
+  package="io.aeron.archive.codecs.my"
+  id="101"
+  version="0"
+  semanticVersion="5.2"
+  description="Message Codecs for the matching engine snapshotting"
+  byteOrder="littleEndian">
+  <types>
+    <type name="intEnumEncoding" primitiveType="uint8"/>
+    <type name="idString" length="32" primitiveType="char" characterEncoding="ISO_8859_1"/>
+
+    <composite name="messageHeader" description="Message identifiers and length of message root">
+      <type name="blockLength" primitiveType="uint16"/>
+      <type name="templateId"  primitiveType="uint16"/>
+      <type name="schemaId"    primitiveType="uint16"/>
+      <type name="version"     primitiveType="uint16"/>
+    </composite>
+
+    <composite name="varAsciiEncoding" description="to represent string with unknown length">
+      <type name="length"      primitiveType="uint32" maxValue="1073741824"/>
+      <type name="varData"     primitiveType="uint8" length="0" characterEncoding="US-ASCII"/>
+    </composite>
+
+
+    <enum name="OrderSide" encodingType="intEnumEncoding">
+      <validValue name="Buy">1</validValue>
+      <validValue name="Sell">2</validValue>
+    </enum>
+
+    <enum name="OrderType" encodingType="intEnumEncoding">
+      <validValue name="Limit">1</validValue>
+      <validValue name="Market">2</validValue>
+    </enum>
+
+    <enum name="BooleanType" encodingType="intEnumEncoding">
+      <validValue name="FALSE">0</validValue>
+      <validValue name="TRUE">1</validValue>
+    </enum>
+
+  </types>
+
+  <sbe:message name="MatchingEngineStartMark" blockLength="32" id="1001">
+    <field name="instrumentId"      id="1" type="idString" offset="0" semanticType="String"/>
+  </sbe:message>
+
+  <sbe:message name="MatchingEngineEndMark" blockLength="32" id="1002">
+    <field name="instrumentId"      id="2" type="idString" offset="0" semanticType="String"/>
+  </sbe:message>
+
+  <sbe:message name="PriceLevelStartMark" blockLength="65" id="1003">
+    <field name="price"             id="1" type="int64" offset="0"/>
+    <field name="side"              id="2" type="OrderSide" offset="64" description="order side"/>
+  </sbe:message>
+
+  <sbe:message name="Order" id="1004" blockLength="162" description="Order">
+    <field name="externalOrderId"   id="1" type="idString" offset="0" semanticType="String"/>
+    <field name="originalQuantity"  id="2" type="int64" offset="32"/>
+    <field name="remainingQuantity" id="3" type="int64" offset="96"/>
+    <field name="orderType"         id="4" type="OrderType" offset="160"/>
+    <field name="isMarketMaker"     id="5" type="BooleanType" offset="161" semanticType="Boolean"/>
+  </sbe:message>
+
+</sbe:messageSchema>

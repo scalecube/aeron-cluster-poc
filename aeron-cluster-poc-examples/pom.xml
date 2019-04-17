@@ -62,6 +62,12 @@
       <groupId>io.scalecube</groupId>
       <artifactId>trace-reporter</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>uk.co.real-logic</groupId>
+      <artifactId>sbe-all</artifactId>
+      <version>1.12.4</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -71,6 +77,61 @@
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>versions-maven-plugin</artifactId>
+        <version>2.7</version>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <id>generate</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>uk.co.real_logic.sbe.SbeTool</mainClass>
+          <classpathScope>compile</classpathScope>
+          <commandlineArgs>${project.build.resources[0].directory}/snapshotting.xml</commandlineArgs>
+          <systemProperties>
+            <systemProperty>
+              <key>sbe.output.dir</key>
+              <value>${project.build.directory}/generated-sources/java</value>
+            </systemProperty>
+            <systemProperty>
+              <key>sbe.target.namespace</key>
+              <value>om2.exchange.marketdata.match.fifo.snapshotting</value>
+            </systemProperty>
+          </systemProperties>
+          <workingDirectory>${project.build.directory}/generated-sources/java</workingDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/java/</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
