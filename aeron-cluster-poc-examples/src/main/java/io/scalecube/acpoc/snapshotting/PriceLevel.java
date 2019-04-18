@@ -21,10 +21,9 @@ public class PriceLevel {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("PriceLevel{");
+    final StringBuilder sb = new StringBuilder("{");
     sb.append("side=").append(side);
     sb.append(", price=").append(price);
-    sb.append(", orders=").append(orders);
     sb.append('}');
     return sb.toString();
   }

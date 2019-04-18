@@ -29,12 +29,11 @@ public class Order {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("Order{");
+    final StringBuilder sb = new StringBuilder("{");
     sb.append("externalOrderId='").append(externalOrderId).append('\'');
     sb.append(", originalQuantity=").append(originalQuantity);
     sb.append(", remainingQuantity=").append(remainingQuantity);
     sb.append(", orderType=").append(orderType);
-    sb.append(", level=").append(level);
     sb.append(", isMarketMaker=").append(isMarketMaker);
     sb.append('}');
     return sb.toString();

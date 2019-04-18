@@ -1,7 +1,6 @@
 package io.scalecube.acpoc.snapshotting;
 
 import io.aeron.Image;
-import io.aeron.cluster.client.ClusterException;
 import io.aeron.logbuffer.ControlledFragmentHandler;
 import io.aeron.logbuffer.Header;
 import java.util.HashMap;
@@ -15,25 +14,29 @@ import om2.exchange.marketdata.match.fifo.snapshotting.OrderType;
 import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelDecoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.SnapshotType;
 import org.agrona.DirectBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
 
-  private static final int FRAGMENT_LIMIT = 10;
+  private static final Logger logger = LoggerFactory.getLogger(MatchingEngineSnapshotLoader.class);
 
-  private final Image image;
+  private static final int FRAGMENT_LIMIT = 10;
 
   private final MessageHeaderDecoder messageHeaderDecoder = new MessageHeaderDecoder();
   private final MatchingEngineDecoder matchingEngineDecoder = new MatchingEngineDecoder();
   private final PriceLevelDecoder priceLevelDecoder = new PriceLevelDecoder();
   private final OrderDecoder orderDecoder = new OrderDecoder();
 
+  private final Image image;
+
   private boolean inSnapshot = false;
   private boolean isDone = false;
 
   // Matching Engine State
   private String instrumentId;
-  private final Map<Long, PriceLevel> bids = new HashMap<>();
-  private final Map<Long, PriceLevel> asks = new HashMap<>();
+  private Map<Long, PriceLevel> bids;
+  private Map<Long, PriceLevel> asks;
   private PriceLevel currentPriceLevel;
 
   public MatchingEngineSnapshotLoader(Image image) {
@@ -48,14 +51,17 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
     return image.controlledPoll(this, FRAGMENT_LIMIT);
   }
 
+  FifoMatchingEngine matchingEngine() {
+    return new FifoMatchingEngine(instrumentId, bids, asks);
+  }
+
   @Override
   public Action onFragment(DirectBuffer buffer, int offset, int length, Header header) {
-
     messageHeaderDecoder.wrap(buffer, offset);
 
     final int schemaId = messageHeaderDecoder.schemaId();
     if (schemaId != MessageHeaderDecoder.SCHEMA_ID) {
-      throw new ClusterException(
+      throw new RuntimeException(
           "expected schemaId=" + MessageHeaderDecoder.SCHEMA_ID + ", actual=" + schemaId);
     }
 
@@ -73,20 +79,26 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
         switch (typeId) {
           case START:
             if (inSnapshot) {
-              throw new ClusterException("already in snapshot");
+              throw new RuntimeException("already in snapshot");
             }
             inSnapshot = true;
-            // todo
+            this.instrumentId = instrumentId;
+            this.bids = new HashMap<>();
+            this.asks = new HashMap<>();
+            this.currentPriceLevel = null;
+
+            logger.info("Started reading matching engine for instrumentId: {}", instrumentId);
             return Action.CONTINUE;
           case END:
             if (!inSnapshot) {
-              throw new ClusterException("missing begin snapshot");
+              throw new RuntimeException("missing begin snapshot");
             }
             isDone = true;
-            // todo
+
+            logger.info("Finished reading matching engine for instrumentId: {}", instrumentId);
             return Action.BREAK;
           default:
-            throw new ClusterException("unexpected snapshot type: " + typeId);
+            throw new RuntimeException("unexpected snapshot type: " + typeId);
         }
       case PriceLevelDecoder.TEMPLATE_ID:
         priceLevelDecoder.wrap(
@@ -97,7 +109,12 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
 
         final long price = priceLevelDecoder.price();
         final OrderSide side = priceLevelDecoder.side();
-        // todo
+        this.currentPriceLevel = new PriceLevel(side, price);
+
+        logger.info(
+            "instrumentId: {}, started reading price level {}",
+            this.instrumentId,
+            currentPriceLevel);
         break;
       case OrderDecoder.TEMPLATE_ID:
         orderDecoder.wrap(
@@ -111,7 +128,20 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
         long remainingQuantity = orderDecoder.remainingQuantity();
         OrderType orderType = orderDecoder.orderType();
         boolean isMarketMaker = orderDecoder.isMarketMaker() == BooleanType.TRUE;
-        // todo
+        Order order =
+            new Order(
+                this.currentPriceLevel,
+                externalOrderId,
+                originalQuantity,
+                remainingQuantity,
+                orderType,
+                isMarketMaker);
+
+        logger.info(
+            "instrumentId: {}, priceLevel: {}, started reading order {}",
+            this.instrumentId,
+            this.currentPriceLevel,
+            order);
         break;
     }
 
