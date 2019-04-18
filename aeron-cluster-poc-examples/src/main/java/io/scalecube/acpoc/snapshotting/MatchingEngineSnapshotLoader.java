@@ -51,8 +51,8 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
     return image.controlledPoll(this, FRAGMENT_LIMIT);
   }
 
-  FifoMatchingEngine matchingEngine() {
-    return new FifoMatchingEngine(instrumentId, bids, asks);
+  MatchingEngine matchingEngine() {
+    return new MatchingEngine(instrumentId, bids, asks);
   }
 
   @Override

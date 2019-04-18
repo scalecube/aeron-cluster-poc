@@ -12,7 +12,7 @@ import om2.exchange.marketdata.match.fifo.snapshotting.OrderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.SnapshotType;
 
-public class FifoMatchingEngine {
+public class MatchingEngine {
 
   private final String instrumentId;
 
@@ -23,7 +23,7 @@ public class FifoMatchingEngine {
       new FifoMatchingEngineSnapshotTaker();
 
   /** Creator. */
-  public FifoMatchingEngine(
+  public MatchingEngine(
       String instrumentId, Map<Long, PriceLevel> bids, Map<Long, PriceLevel> asks) {
     this.bids = bids;
     this.asks = asks;

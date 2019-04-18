@@ -37,7 +37,7 @@ import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.YieldingIdleStrategy;
 import org.agrona.concurrent.status.CountersReader;
 
-public class FifoMatchingEngineTest {
+public class MatchingEngineSnapshotTest {
 
   private static final Random RANDOM = new Random();
   private static final int ORDERS_COUNT = RANDOM.nextInt(100);
@@ -62,7 +62,7 @@ public class FifoMatchingEngineTest {
       }
     }
 
-    FifoMatchingEngine engine = new FifoMatchingEngine(instrumentId, bids, asks);
+    MatchingEngine engine = new MatchingEngine(instrumentId, bids, asks);
 
     System.out.println("before: " + engine);
 
@@ -134,14 +134,14 @@ public class FifoMatchingEngineTest {
               image -> System.out.println("-image: " + image.sessionId()))) {
         Image image = awaitImage(replaySessionId, subscription);
         System.err.println(2);
-        FifoMatchingEngine matchingEngine = awaitMatchingEngine(image);
+        MatchingEngine matchingEngine = awaitMatchingEngine(image);
         System.err.println(3);
         System.err.println(matchingEngine);
       }
     }
   }
 
-  private static FifoMatchingEngine awaitMatchingEngine(Image image) {
+  private static MatchingEngine awaitMatchingEngine(Image image) {
 
     MatchingEngineSnapshotLoader snapshotLoader = new MatchingEngineSnapshotLoader(image);
 
@@ -278,12 +278,12 @@ public class FifoMatchingEngineTest {
 
       @Override
       public void idle() {
-        FifoMatchingEngineTest.IDLE_STRATEGY.idle();
+        MatchingEngineSnapshotTest.IDLE_STRATEGY.idle();
       }
 
       @Override
       public void idle(int workCount) {
-        FifoMatchingEngineTest.IDLE_STRATEGY.idle(workCount);
+        MatchingEngineSnapshotTest.IDLE_STRATEGY.idle(workCount);
       }
     };
   }
