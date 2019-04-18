@@ -10,6 +10,7 @@ import om2.exchange.marketdata.match.fifo.snapshotting.MatchingEngineEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.MessageHeaderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.OrderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelEncoder;
+import om2.exchange.marketdata.match.fifo.snapshotting.SnapshotType;
 
 public class FifoMatchingEngine {
 
@@ -60,6 +61,7 @@ public class FifoMatchingEngine {
         if (result > 0) {
           matchingEngineEncoder
               .wrapAndApplyHeader(bufferClaim.buffer(), bufferClaim.offset(), messageHeaderEncoder)
+              .snapshot(SnapshotType.START)
               .instrumentId(instrumentId);
           bufferClaim.commit();
           break;
@@ -91,6 +93,7 @@ public class FifoMatchingEngine {
     private void storeOrders(Cluster cluster, Publication publication, PriceLevel priceLevel) {
       int length = MessageHeaderEncoder.ENCODED_LENGTH + OrderEncoder.BLOCK_LENGTH;
       for (Order order : priceLevel.orders) {
+        System.err.println("store order" + order.externalOrderId);
         while (true) {
           final long result = publication.tryClaim(length, bufferClaim);
 
@@ -120,6 +123,7 @@ public class FifoMatchingEngine {
         if (result > 0) {
           matchingEngineEncoder
               .wrapAndApplyHeader(bufferClaim.buffer(), bufferClaim.offset(), messageHeaderEncoder)
+              .snapshot(SnapshotType.END)
               .instrumentId(instrumentId);
           bufferClaim.commit();
           break;
@@ -136,5 +140,30 @@ public class FifoMatchingEngine {
         throw new AeronException("unexpected publication state: " + result);
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("FifoMatchingEngine{");
+    sb.append("instrumentId='").append(instrumentId).append('\'');
+    sb.append(", bids=[");
+
+
+    bids.values().forEach(priceLevel -> {
+      sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
+      priceLevel.orders.forEach(sb::append);
+      sb.append("]}");
+    });
+
+    sb.append("]").append(", asks=[");
+
+    asks.values().forEach(priceLevel -> {
+      sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
+      priceLevel.orders.forEach(sb::append);
+      sb.append("]}");
+    });
+
+    sb.append("]}");
+    return sb.toString();
   }
 }

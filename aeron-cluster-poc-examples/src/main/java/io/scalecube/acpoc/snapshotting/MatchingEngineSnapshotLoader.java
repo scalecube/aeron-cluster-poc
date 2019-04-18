@@ -100,6 +100,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
           default:
             throw new RuntimeException("unexpected snapshot type: " + typeId);
         }
+
       case PriceLevelDecoder.TEMPLATE_ID:
         priceLevelDecoder.wrap(
             buffer,
@@ -109,13 +110,21 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
 
         final long price = priceLevelDecoder.price();
         final OrderSide side = priceLevelDecoder.side();
-        this.currentPriceLevel = new PriceLevel(side, price);
+        PriceLevel priceLevel = new PriceLevel(side, price);
+
+        if (side == OrderSide.Buy) {
+          bids.put(price, priceLevel);
+        } else {
+          asks.put(price, priceLevel);
+        }
+        this.currentPriceLevel = priceLevel;
 
         logger.info(
             "instrumentId: {}, started reading price level {}",
             this.instrumentId,
-            currentPriceLevel);
+            this.currentPriceLevel);
         break;
+
       case OrderDecoder.TEMPLATE_ID:
         orderDecoder.wrap(
             buffer,
@@ -136,6 +145,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
                 remainingQuantity,
                 orderType,
                 isMarketMaker);
+        this.currentPriceLevel.add(order);
 
         logger.info(
             "instrumentId: {}, priceLevel: {}, started reading order {}",
@@ -143,6 +153,8 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
             this.currentPriceLevel,
             order);
         break;
+      default:
+        throw new IllegalStateException("unknown templateId: " + templateId);
     }
 
     return ControlledFragmentHandler.Action.CONTINUE;

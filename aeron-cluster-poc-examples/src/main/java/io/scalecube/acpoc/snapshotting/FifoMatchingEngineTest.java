@@ -1,5 +1,6 @@
 package io.scalecube.acpoc.snapshotting;
 
+import static io.aeron.Aeron.NULL_VALUE;
 import static io.aeron.archive.codecs.SourceLocation.LOCAL;
 import static io.scalecube.acpoc.Utils.checkInterruptedStatus;
 import static org.agrona.concurrent.status.CountersReader.NULL_COUNTER_ID;
@@ -7,7 +8,9 @@ import static org.agrona.concurrent.status.CountersReader.NULL_COUNTER_ID;
 import io.aeron.Aeron;
 import io.aeron.ChannelUri;
 import io.aeron.CommonContext;
+import io.aeron.Image;
 import io.aeron.Publication;
+import io.aeron.Subscription;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.ArchivingMediaDriver;
@@ -37,7 +40,7 @@ import org.agrona.concurrent.status.CountersReader;
 public class FifoMatchingEngineTest {
 
   private static final Random RANDOM = new Random();
-  private static final int PRICE_LEVEL_COUNT = RANDOM.nextInt(100);
+  private static final int ORDERS_COUNT = RANDOM.nextInt(100);
   private static final IdleStrategy IDLE_STRATEGY = new YieldingIdleStrategy();
 
   /** Starter. */
@@ -47,16 +50,21 @@ public class FifoMatchingEngineTest {
     Map<Long, PriceLevel> bids = new HashMap<>();
     Map<Long, PriceLevel> asks = new HashMap<>();
 
-    for (int i = 0; i < PRICE_LEVEL_COUNT; i++) {
-      PriceLevel priceLevel = newPriceLevel();
-      if (priceLevel.side == OrderSide.Buy) {
-        bids.put(priceLevel.price, priceLevel);
+    PriceLevel priceLevel = newPriceLevel();
+    for (int i = 0; i < ORDERS_COUNT; i++) {
+      PriceLevel target = RANDOM.nextBoolean() ? newPriceLevel() : priceLevel;
+      Order order = newOrder(target);
+      target.add(order);
+      if (target.side == OrderSide.Buy) {
+        bids.put(target.price, target);
       } else {
-        asks.put(priceLevel.price, priceLevel);
+        asks.put(target.price, target);
       }
     }
 
     FifoMatchingEngine engine = new FifoMatchingEngine(instrumentId, bids, asks);
+
+    System.out.println("before: " + engine);
 
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "test").toString();
     if (Configurations.CLEAN_START) {
@@ -87,53 +95,121 @@ public class FifoMatchingEngineTest {
 
       Aeron aeron = aeronArchive.context().aeron();
 
-      String snapshotChannel = CommonContext.IPC_CHANNEL;
-      int snapshotStreamId = 106;
+      final String snapshotChannel = CommonContext.IPC_CHANNEL;
+      final int snapshotStreamId = 106;
 
       Publication publication = aeron.addExclusivePublication(snapshotChannel, snapshotStreamId);
       final String channel = ChannelUri.addSessionId(snapshotChannel, publication.sessionId());
 
       final long subscriptionId = aeronArchive.startRecording(channel, snapshotStreamId, LOCAL);
 
-      try {
-        final CountersReader counters = aeron.countersReader();
-        final int sessionId = publication.sessionId();
+      final int sessionId = publication.sessionId();
+      final CountersReader counters = aeron.countersReader();
 
-        // find recordingId
-        IDLE_STRATEGY.reset();
-        int counterId = RecordingPos.findCounterIdBySession(counters, sessionId);
-        while (NULL_COUNTER_ID == counterId) {
-          checkInterruptedStatus();
-          IDLE_STRATEGY.idle();
-          counterId = RecordingPos.findCounterIdBySession(counters, sessionId);
-        }
-        long recordingId = RecordingPos.getRecordingId(counters, counterId);
+      final long recordingId;
+      try {
+        final int counterId = awaitRecordingCounter(sessionId, counters);
+        recordingId = RecordingPos.getRecordingId(counters, counterId);
         System.out.println("recordingId = " + recordingId);
 
         engine.takeSnapshot(mockCluster(), publication);
 
-        // awaitRecordingComplete
-        IDLE_STRATEGY.reset();
-        final long position = publication.position();
-        do {
-          IDLE_STRATEGY.idle();
-          checkInterruptedStatus();
-
-          if (!RecordingPos.isActive(counters, counterId, recordingId)) {
-            throw new ClusterException("recording has stopped unexpectedly: " + recordingId);
-          }
-
-          aeronArchive.checkForErrorResponse();
-        } while (counters.getCounterValue(counterId) < position);
-
+        awaitRecordingComplete(aeronArchive, publication, counters, counterId, recordingId);
       } finally {
         aeronArchive.stopRecording(subscriptionId);
+      }
+
+      System.err.println(1);
+      final int replaySessionId =
+          (int)
+              aeronArchive.startReplay(
+                  recordingId, 0, NULL_VALUE, snapshotChannel, snapshotStreamId);
+      final String replaySessionChannel = ChannelUri.addSessionId(snapshotChannel, replaySessionId);
+
+      try (Subscription subscription =
+          aeron.addSubscription(
+              replaySessionChannel,
+              snapshotStreamId,
+              image -> System.out.println("+image: " + image.sessionId()),
+              image -> System.out.println("-image: " + image.sessionId()))) {
+        Image image = awaitImage(replaySessionId, subscription);
+        System.err.println(2);
+        FifoMatchingEngine matchingEngine = awaitMatchingEngine(image);
+        System.err.println(3);
+        System.err.println(matchingEngine);
       }
     }
   }
 
+  private static FifoMatchingEngine awaitMatchingEngine(Image image) {
+
+    MatchingEngineSnapshotLoader snapshotLoader = new MatchingEngineSnapshotLoader(image);
+
+    while (true) {
+      final int fragments = snapshotLoader.poll();
+      if (snapshotLoader.isDone()) {
+        break;
+      }
+
+      if (fragments == 0) {
+        checkInterruptedStatus();
+
+        if (image.isClosed()) {
+          throw new RuntimeException("snapshot ended unexpectedly");
+        }
+
+        IDLE_STRATEGY.idle(fragments);
+      }
+    }
+
+    return snapshotLoader.matchingEngine();
+  }
+
+  private static int awaitRecordingCounter(final int sessionId, final CountersReader counters) {
+    IDLE_STRATEGY.reset();
+    int counterId = RecordingPos.findCounterIdBySession(counters, sessionId);
+    while (NULL_COUNTER_ID == counterId) {
+      checkInterruptedStatus();
+      IDLE_STRATEGY.idle();
+      counterId = RecordingPos.findCounterIdBySession(counters, sessionId);
+    }
+
+    return counterId;
+  }
+
+  private static void awaitRecordingComplete(
+      AeronArchive aeronArchive,
+      Publication publication,
+      CountersReader counters,
+      int counterId,
+      long recordingId) {
+    IDLE_STRATEGY.reset();
+    final long position = publication.position();
+    do {
+      IDLE_STRATEGY.idle();
+      checkInterruptedStatus();
+
+      if (!RecordingPos.isActive(counters, counterId, recordingId)) {
+        throw new ClusterException("recording has stopped unexpectedly: " + recordingId);
+      }
+
+      aeronArchive.checkForErrorResponse();
+    } while (counters.getCounterValue(counterId) < position);
+  }
+
+  private static Image awaitImage(final int sessionId, final Subscription subscription) {
+    IDLE_STRATEGY.reset();
+    Image image;
+    while ((image = subscription.imageBySessionId(sessionId)) == null) {
+      checkInterruptedStatus();
+      IDLE_STRATEGY.idle();
+    }
+
+    return image;
+  }
+
   private static PriceLevel newPriceLevel() {
-    OrderSide side = OrderSide.values()[RANDOM.nextInt(OrderSide.values().length)];
+    OrderSide side = RANDOM.nextBoolean() ? OrderSide.Buy : OrderSide.Sell;
     long price = RANDOM.nextLong();
     return new PriceLevel(side, price);
   }
@@ -142,7 +218,7 @@ public class FifoMatchingEngineTest {
     UUID externalId = UUID.randomUUID();
     long quantity = RANDOM.nextLong();
     long remainingQuantity = RANDOM.nextLong();
-    OrderType orderType = OrderType.values()[RANDOM.nextInt(OrderType.values().length)];
+    OrderType orderType = RANDOM.nextBoolean() ? OrderType.Limit : OrderType.Market;
     boolean isMarketMaker = RANDOM.nextBoolean();
     return new Order(
         priceLevel, externalId.toString(), quantity, remainingQuantity, orderType, isMarketMaker);
