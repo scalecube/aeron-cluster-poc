@@ -38,7 +38,7 @@ public class FifoMatchingEngineTest {
 
   private static final Random RANDOM = new Random();
   private static final int PRICE_LEVEL_COUNT = RANDOM.nextInt(100);
-  public static final IdleStrategy IDLE_STRATEGY = new YieldingIdleStrategy();
+  private static final IdleStrategy IDLE_STRATEGY = new YieldingIdleStrategy();
 
   /** Starter. */
   public static void main(String[] args) {

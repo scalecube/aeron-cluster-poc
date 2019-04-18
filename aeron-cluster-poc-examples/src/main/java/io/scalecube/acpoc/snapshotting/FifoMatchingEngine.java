@@ -6,11 +6,10 @@ import io.aeron.exceptions.AeronException;
 import io.aeron.logbuffer.BufferClaim;
 import java.util.Map;
 import om2.exchange.marketdata.match.fifo.snapshotting.BooleanType;
-import om2.exchange.marketdata.match.fifo.snapshotting.MatchingEngineEndMarkEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.MatchingEngineStartMarkEncoder;
+import om2.exchange.marketdata.match.fifo.snapshotting.MatchingEngineEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.MessageHeaderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.OrderEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelStartMarkEncoder;
+import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelEncoder;
 
 public class FifoMatchingEngine {
 
@@ -38,15 +37,8 @@ public class FifoMatchingEngine {
 
     private final BufferClaim bufferClaim = new BufferClaim();
     private final MessageHeaderEncoder messageHeaderEncoder = new MessageHeaderEncoder();
-
-    private final MatchingEngineStartMarkEncoder matchingEngineStartMarkEncoder =
-        new MatchingEngineStartMarkEncoder();
-
-    private final MatchingEngineEndMarkEncoder matchingEngineEndMarkEncoder =
-        new MatchingEngineEndMarkEncoder();
-
-    private final PriceLevelStartMarkEncoder priceLevelStartMarkEncoder =
-        new PriceLevelStartMarkEncoder();
+    private final MatchingEngineEncoder matchingEngineEncoder = new MatchingEngineEncoder();
+    private final PriceLevelEncoder priceLevelEncoder = new PriceLevelEncoder();
     private final OrderEncoder orderEncoder = new OrderEncoder();
 
     private void snapshotMatchingEngine(Cluster cluster, Publication publication) {
@@ -61,13 +53,12 @@ public class FifoMatchingEngine {
     }
 
     private void storeMatchingEngineInfo(Cluster cluster, Publication publication) {
-      int length =
-          MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineStartMarkEncoder.BLOCK_LENGTH;
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
-          matchingEngineStartMarkEncoder
+          matchingEngineEncoder
               .wrapAndApplyHeader(bufferClaim.buffer(), bufferClaim.offset(), messageHeaderEncoder)
               .instrumentId(instrumentId);
           bufferClaim.commit();
@@ -79,12 +70,12 @@ public class FifoMatchingEngine {
     }
 
     private void storePriceLevel(Cluster cluster, Publication publication, PriceLevel priceLevel) {
-      int length = MessageHeaderEncoder.ENCODED_LENGTH + PriceLevelStartMarkEncoder.BLOCK_LENGTH;
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + PriceLevelEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
-          priceLevelStartMarkEncoder
+          priceLevelEncoder
               .wrapAndApplyHeader(bufferClaim.buffer(), bufferClaim.offset(), messageHeaderEncoder)
               .side(priceLevel.side)
               .price(priceLevel.price);
@@ -122,12 +113,12 @@ public class FifoMatchingEngine {
     }
 
     private void markEnd(Cluster cluster, Publication publication) {
-      int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEndMarkEncoder.BLOCK_LENGTH;
+      int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
 
         if (result > 0) {
-          matchingEngineEndMarkEncoder
+          matchingEngineEncoder
               .wrapAndApplyHeader(bufferClaim.buffer(), bufferClaim.offset(), messageHeaderEncoder)
               .instrumentId(instrumentId);
           bufferClaim.commit();
