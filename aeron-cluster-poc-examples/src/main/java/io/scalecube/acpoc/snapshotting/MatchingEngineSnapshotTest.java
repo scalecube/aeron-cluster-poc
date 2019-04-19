@@ -17,15 +17,10 @@ import io.aeron.archive.ArchivingMediaDriver;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.archive.status.RecordingPos;
 import io.aeron.cluster.client.ClusterException;
-import io.aeron.cluster.service.ClientSession;
-import io.aeron.cluster.service.Cluster;
-import io.aeron.cluster.service.ClusteredServiceContainer.Context;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.ThreadingMode;
-import io.scalecube.acpoc.Configurations;
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -36,8 +31,12 @@ import org.agrona.IoUtil;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.YieldingIdleStrategy;
 import org.agrona.concurrent.status.CountersReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MatchingEngineSnapshotTest {
+
+  private static final Logger logger = LoggerFactory.getLogger(MatchingEngineSnapshotLoader.class);
 
   private static final Random RANDOM = new Random();
   private static final int ORDERS_COUNT = RANDOM.nextInt(100);
@@ -63,14 +62,11 @@ public class MatchingEngineSnapshotTest {
     }
 
     MatchingEngine engine = new MatchingEngine(instrumentId, bids, asks);
-
-    System.out.println("before: " + engine);
+    logger.info("before: {}", engine);
 
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "test").toString();
-    if (Configurations.CLEAN_START) {
-      IoUtil.delete(new File(nodeDirName), true);
-    }
-    System.out.println("node directory: " + nodeDirName);
+    IoUtil.delete(new File(nodeDirName), true);
+    logger.info("node directory: {}", nodeDirName);
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
@@ -110,16 +106,14 @@ public class MatchingEngineSnapshotTest {
       try {
         final int counterId = awaitRecordingCounter(sessionId, counters);
         recordingId = RecordingPos.getRecordingId(counters, counterId);
-        System.out.println("recordingId = " + recordingId);
-
-        engine.takeSnapshot(mockCluster(), publication);
+        logger.info("recordingId = {}", recordingId);
+        engine.takeSnapshot(IDLE_STRATEGY, publication);
 
         awaitRecordingComplete(aeronArchive, publication, counters, counterId, recordingId);
       } finally {
         aeronArchive.stopRecording(subscriptionId);
       }
 
-      System.err.println(1);
       final int replaySessionId =
           (int)
               aeronArchive.startReplay(
@@ -130,13 +124,11 @@ public class MatchingEngineSnapshotTest {
           aeron.addSubscription(
               replaySessionChannel,
               snapshotStreamId,
-              image -> System.out.println("+image: " + image.sessionId()),
-              image -> System.out.println("-image: " + image.sessionId()))) {
+              image -> logger.info("sessionId: {}, image available", image.sessionId()),
+              image -> logger.info("sessionId: {}, image unavailable", image.sessionId()))) {
         Image image = awaitImage(replaySessionId, subscription);
-        System.err.println(2);
         MatchingEngine matchingEngine = awaitMatchingEngine(image);
-        System.err.println(3);
-        System.err.println(matchingEngine);
+        logger.info("after:  {}", matchingEngine);
       }
     }
   }
@@ -222,69 +214,5 @@ public class MatchingEngineSnapshotTest {
     boolean isMarketMaker = RANDOM.nextBoolean();
     return new Order(
         priceLevel, externalId.toString(), quantity, remainingQuantity, orderType, isMarketMaker);
-  }
-
-  private static Cluster mockCluster() {
-    return new Cluster() {
-      @Override
-      public int memberId() {
-        return 0;
-      }
-
-      @Override
-      public Role role() {
-        return null;
-      }
-
-      @Override
-      public Aeron aeron() {
-        return null;
-      }
-
-      @Override
-      public Context context() {
-        return null;
-      }
-
-      @Override
-      public ClientSession getClientSession(long clusterSessionId) {
-        return null;
-      }
-
-      @Override
-      public Collection<ClientSession> clientSessions() {
-        return null;
-      }
-
-      @Override
-      public boolean closeSession(long clusterSessionId) {
-        return false;
-      }
-
-      @Override
-      public long timeMs() {
-        return 0;
-      }
-
-      @Override
-      public boolean scheduleTimer(long correlationId, long deadlineMs) {
-        return false;
-      }
-
-      @Override
-      public boolean cancelTimer(long correlationId) {
-        return false;
-      }
-
-      @Override
-      public void idle() {
-        MatchingEngineSnapshotTest.IDLE_STRATEGY.idle();
-      }
-
-      @Override
-      public void idle(int workCount) {
-        MatchingEngineSnapshotTest.IDLE_STRATEGY.idle(workCount);
-      }
-    };
   }
 }

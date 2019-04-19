@@ -87,7 +87,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
             this.asks = new HashMap<>();
             this.currentPriceLevel = null;
 
-            logger.info("Started reading matching engine for instrumentId: {}", instrumentId);
+            logger.debug("Started reading matching engine for instrumentId: {}", instrumentId);
             return Action.CONTINUE;
           case END:
             if (!inSnapshot) {
@@ -95,7 +95,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
             }
             isDone = true;
 
-            logger.info("Finished reading matching engine for instrumentId: {}", instrumentId);
+            logger.debug("Finished reading matching engine for instrumentId: {}", instrumentId);
             return Action.BREAK;
           default:
             throw new RuntimeException("unexpected snapshot type: " + typeId);
@@ -119,7 +119,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
         }
         this.currentPriceLevel = priceLevel;
 
-        logger.info(
+        logger.debug(
             "instrumentId: {}, started reading price level {}",
             this.instrumentId,
             this.currentPriceLevel);
@@ -147,7 +147,7 @@ public class MatchingEngineSnapshotLoader implements ControlledFragmentHandler {
                 isMarketMaker);
         this.currentPriceLevel.add(order);
 
-        logger.info(
+        logger.debug(
             "instrumentId: {}, priceLevel: {}, started reading order {}",
             this.instrumentId,
             this.currentPriceLevel,

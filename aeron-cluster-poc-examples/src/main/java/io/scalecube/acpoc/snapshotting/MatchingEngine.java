@@ -1,7 +1,6 @@
 package io.scalecube.acpoc.snapshotting;
 
 import io.aeron.Publication;
-import io.aeron.cluster.service.Cluster;
 import io.aeron.exceptions.AeronException;
 import io.aeron.logbuffer.BufferClaim;
 import java.util.Map;
@@ -11,6 +10,7 @@ import om2.exchange.marketdata.match.fifo.snapshotting.MessageHeaderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.OrderEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelEncoder;
 import om2.exchange.marketdata.match.fifo.snapshotting.SnapshotType;
+import org.agrona.concurrent.IdleStrategy;
 
 public class MatchingEngine {
 
@@ -30,8 +30,8 @@ public class MatchingEngine {
     this.instrumentId = instrumentId;
   }
 
-  public void takeSnapshot(Cluster cluster, Publication publication) {
-    snapshotTaker.snapshotMatchingEngine(cluster, publication);
+  public void takeSnapshot(IdleStrategy idleStrategy, Publication publication) {
+    snapshotTaker.snapshotMatchingEngine(idleStrategy, publication);
   }
 
   private class FifoMatchingEngineSnapshotTaker {
@@ -42,18 +42,18 @@ public class MatchingEngine {
     private final PriceLevelEncoder priceLevelEncoder = new PriceLevelEncoder();
     private final OrderEncoder orderEncoder = new OrderEncoder();
 
-    private void snapshotMatchingEngine(Cluster cluster, Publication publication) {
-      storeMatchingEngineInfo(cluster, publication);
+    private void snapshotMatchingEngine(IdleStrategy idleStrategy, Publication publication) {
+      storeMatchingEngineInfo(idleStrategy, publication);
       for (PriceLevel priceLevel : bids.values()) {
-        storePriceLevel(cluster, publication, priceLevel);
+        storePriceLevel(idleStrategy, publication, priceLevel);
       }
       for (PriceLevel priceLevel : asks.values()) {
-        storePriceLevel(cluster, publication, priceLevel);
+        storePriceLevel(idleStrategy, publication, priceLevel);
       }
-      markEnd(cluster, publication);
+      markEnd(idleStrategy, publication);
     }
 
-    private void storeMatchingEngineInfo(Cluster cluster, Publication publication) {
+    private void storeMatchingEngineInfo(IdleStrategy idleStrategy, Publication publication) {
       int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
@@ -67,11 +67,12 @@ public class MatchingEngine {
           break;
         }
         checkResult(result);
-        cluster.idle();
+        idleStrategy.idle();
       }
     }
 
-    private void storePriceLevel(Cluster cluster, Publication publication, PriceLevel priceLevel) {
+    private void storePriceLevel(
+        IdleStrategy idleStrategy, Publication publication, PriceLevel priceLevel) {
       int length = MessageHeaderEncoder.ENCODED_LENGTH + PriceLevelEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
@@ -85,15 +86,15 @@ public class MatchingEngine {
           break;
         }
         checkResult(result);
-        cluster.idle();
+        idleStrategy.idle();
       }
-      storeOrders(cluster, publication, priceLevel);
+      storeOrders(idleStrategy, publication, priceLevel);
     }
 
-    private void storeOrders(Cluster cluster, Publication publication, PriceLevel priceLevel) {
+    private void storeOrders(
+        IdleStrategy idleStrategy, Publication publication, PriceLevel priceLevel) {
       int length = MessageHeaderEncoder.ENCODED_LENGTH + OrderEncoder.BLOCK_LENGTH;
       for (Order order : priceLevel.orders) {
-        System.err.println("store order" + order.externalOrderId);
         while (true) {
           final long result = publication.tryClaim(length, bufferClaim);
 
@@ -110,12 +111,12 @@ public class MatchingEngine {
             break;
           }
           checkResult(result);
-          cluster.idle();
+          idleStrategy.idle();
         }
       }
     }
 
-    private void markEnd(Cluster cluster, Publication publication) {
+    private void markEnd(IdleStrategy idleStrategy, Publication publication) {
       int length = MessageHeaderEncoder.ENCODED_LENGTH + MatchingEngineEncoder.BLOCK_LENGTH;
       while (true) {
         final long result = publication.tryClaim(length, bufferClaim);
@@ -129,7 +130,7 @@ public class MatchingEngine {
           break;
         }
         checkResult(result);
-        cluster.idle();
+        idleStrategy.idle();
       }
     }
 
@@ -148,20 +149,23 @@ public class MatchingEngine {
     sb.append("instrumentId='").append(instrumentId).append('\'');
     sb.append(", bids=[");
 
-
-    bids.values().forEach(priceLevel -> {
-      sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
-      priceLevel.orders.forEach(sb::append);
-      sb.append("]}");
-    });
+    bids.values()
+        .forEach(
+            priceLevel -> {
+              sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
+              priceLevel.orders.forEach(sb::append);
+              sb.append("]}");
+            });
 
     sb.append("]").append(", asks=[");
 
-    asks.values().forEach(priceLevel -> {
-      sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
-      priceLevel.orders.forEach(sb::append);
-      sb.append("]}");
-    });
+    asks.values()
+        .forEach(
+            priceLevel -> {
+              sb.append("{ priceLevel=").append(priceLevel).append(", orders= [");
+              priceLevel.orders.forEach(sb::append);
+              sb.append("]}");
+            });
 
     sb.append("]}");
     return sb.toString();
