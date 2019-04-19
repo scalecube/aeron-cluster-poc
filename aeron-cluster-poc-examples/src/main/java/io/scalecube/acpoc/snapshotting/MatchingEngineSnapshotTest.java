@@ -61,12 +61,12 @@ public class MatchingEngineSnapshotTest {
       }
     }
 
-    MatchingEngine engine = new MatchingEngine(instrumentId, bids, asks);
-    logger.info("before: {}", engine);
-
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "test").toString();
     IoUtil.delete(new File(nodeDirName), true);
     logger.info("node directory: {}", nodeDirName);
+
+    MatchingEngine engine = new MatchingEngine(instrumentId, bids, asks);
+    logger.info("before: {}", engine);
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
@@ -106,7 +106,7 @@ public class MatchingEngineSnapshotTest {
       try {
         final int counterId = awaitRecordingCounter(sessionId, counters);
         recordingId = RecordingPos.getRecordingId(counters, counterId);
-        logger.info("recordingId = {}", recordingId);
+        logger.debug("recordingId = {}", recordingId);
         engine.takeSnapshot(IDLE_STRATEGY, publication);
 
         awaitRecordingComplete(aeronArchive, publication, counters, counterId, recordingId);
@@ -124,8 +124,8 @@ public class MatchingEngineSnapshotTest {
           aeron.addSubscription(
               replaySessionChannel,
               snapshotStreamId,
-              image -> logger.info("sessionId: {}, image available", image.sessionId()),
-              image -> logger.info("sessionId: {}, image unavailable", image.sessionId()))) {
+              image -> logger.debug("sessionId: {}, image available", image.sessionId()),
+              image -> logger.debug("sessionId: {}, image unavailable", image.sessionId()))) {
         Image image = awaitImage(replaySessionId, subscription);
         MatchingEngine matchingEngine = awaitMatchingEngine(image);
         logger.info("after:  {}", matchingEngine);
