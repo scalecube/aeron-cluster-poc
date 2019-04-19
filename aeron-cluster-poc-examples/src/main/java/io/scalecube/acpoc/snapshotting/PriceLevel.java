@@ -2,7 +2,6 @@ package io.scalecube.acpoc.snapshotting;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
-import om2.exchange.marketdata.match.fifo.snapshotting.OrderSide;
 
 public class PriceLevel {
 

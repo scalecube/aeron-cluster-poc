@@ -4,12 +4,6 @@ import io.aeron.Publication;
 import io.aeron.exceptions.AeronException;
 import io.aeron.logbuffer.BufferClaim;
 import java.util.Map;
-import om2.exchange.marketdata.match.fifo.snapshotting.BooleanType;
-import om2.exchange.marketdata.match.fifo.snapshotting.MatchingEngineEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.MessageHeaderEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.OrderEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.PriceLevelEncoder;
-import om2.exchange.marketdata.match.fifo.snapshotting.SnapshotType;
 import org.agrona.concurrent.IdleStrategy;
 
 public class MatchingEngine {

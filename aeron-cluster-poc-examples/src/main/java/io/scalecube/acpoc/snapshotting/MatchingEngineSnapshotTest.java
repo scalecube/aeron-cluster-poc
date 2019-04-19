@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import om2.exchange.marketdata.match.fifo.snapshotting.OrderSide;
-import om2.exchange.marketdata.match.fifo.snapshotting.OrderType;
 import org.agrona.IoUtil;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.YieldingIdleStrategy;
@@ -44,8 +42,6 @@ public class MatchingEngineSnapshotTest {
 
   /** Starter. */
   public static void main(String[] args) {
-    String instrumentId = UUID.randomUUID().toString();
-
     Map<Long, PriceLevel> bids = new HashMap<>();
     Map<Long, PriceLevel> asks = new HashMap<>();
 
@@ -65,6 +61,7 @@ public class MatchingEngineSnapshotTest {
     IoUtil.delete(new File(nodeDirName), true);
     logger.info("node directory: {}", nodeDirName);
 
+    String instrumentId = UUID.randomUUID().toString();
     MatchingEngine engine = new MatchingEngine(instrumentId, bids, asks);
     logger.info("before: {}", engine);
 

@@ -31,6 +31,7 @@
     <disruptor.version>3.4.2</disruptor.version>
     <hdrHistogram.version>2.1.10</hdrHistogram.version>
     <scalecube.trace-reporter.version>0.0.7</scalecube.trace-reporter.version>
+    <sbe-all.version>1.12.4</sbe-all.version>
   </properties>
 
   <modules>
@@ -60,6 +61,11 @@
         <groupId>io.aeron</groupId>
         <artifactId>aeron-cluster</artifactId>
         <version>${aeron.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>uk.co.real-logic</groupId>
+        <artifactId>sbe-all</artifactId>
+        <version>${sbe-all.version}</version>
       </dependency>
 
       <dependency>

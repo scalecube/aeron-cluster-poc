@@ -1,7 +1,5 @@
 package io.scalecube.acpoc.snapshotting;
 
-import om2.exchange.marketdata.match.fifo.snapshotting.OrderType;
-
 public class Order {
 
   public final String externalOrderId;
