@@ -15,6 +15,7 @@ import io.aeron.driver.ThreadingMode;
 import io.aeron.driver.status.SystemCounterDescriptor;
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.agrona.IoUtil;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
@@ -50,38 +51,51 @@ public class ClusterServiceRunner {
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
+    ClusterServiceAddressing addressing1 =
+        new ClusterServiceAddressing(Address.create("localhost", 8000));
+    ClusterServiceAddressing addressing2 =
+        new ClusterServiceAddressing(Address.create("localhost", 9000));
+
+    System.out.println("addressing1: " + addressing1);
+    System.out.println("addressing2: " + addressing2);
+
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
     //noinspection unused
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
 
-    AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
+    AeronArchive.Context aeronArchiveContext1 =
+        aeronArchiveContext(addressing1, aeronDirectoryName);
+    AeronArchive.Context aeronArchiveContext2 =
+        aeronArchiveContext(addressing2, aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext1 =
-        consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
+        consensusModuleContext(
+            1, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
     ConsensusModule.Context consensusModuleContext2 =
-        consensusModuleContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
+        consensusModuleContext(
+            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     Archive.Context archiveContext1 =
-        archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
+        archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
     Archive.Context archiveContext2 =
-        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
+        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
             1,
             nodeDirName,
             aeronDirectoryName,
-            aeronArchiveContext,
+            aeronArchiveContext1.clone(),
             mediaDriverContext.countersManager());
     ClusteredServiceContainer.Context clusteredServiceContext2 =
         clusteredServiceContext(
             2,
             nodeDirName,
             aeronDirectoryName,
-            aeronArchiveContext,
+            aeronArchiveContext2.clone(),
             mediaDriverContext.countersManager());
 
+    archiveContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             archiveContext1.idleStrategy(),
@@ -92,6 +106,7 @@ public class ClusterServiceRunner {
                 createArchiveAgent(archiveContext1, mediaDriverContext),
                 createArchiveAgent(archiveContext2, mediaDriverContext))));
 
+    consensusModuleContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             consensusModuleContext1.idleStrategy(),
@@ -102,6 +117,7 @@ public class ClusterServiceRunner {
                 ExtendedConsensusModuleAgent.create(consensusModuleContext1),
                 ExtendedConsensusModuleAgent.create(consensusModuleContext2))));
 
+    clusteredServiceContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             clusteredServiceContext1.idleStrategy(),
@@ -121,6 +137,18 @@ public class ClusterServiceRunner {
               return null;
             });
     onShutdown.block();
+  }
+
+  private static AeronArchive.Context aeronArchiveContext(
+      ClusterServiceAddressing addressing, String aeronDirectoryName) {
+    return new AeronArchive.Context()
+        .aeronDirectoryName(aeronDirectoryName)
+        .errorHandler(ex -> logger.error("Exception occurred at AeronArchive: " + ex, ex))
+        .controlRequestChannel(addressing.archiveControlRequestChannel())
+        .controlRequestStreamId(addressing.archiveControlRequestStreamId())
+        .controlResponseChannel(addressing.archiveControlResponseChannel())
+        .controlResponseStreamId(addressing.archiveControlResponseStreamId())
+        .recordingEventsChannel(addressing.archiveRecordingEventsChannel());
   }
 
   private static Agent createArchiveAgent(
@@ -152,6 +180,7 @@ public class ClusterServiceRunner {
 
   private static ConsensusModule.Context consensusModuleContext(
       int instance,
+      ClusterServiceAddressing addressing,
       String nodeDirName,
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext) {
@@ -159,7 +188,13 @@ public class ClusterServiceRunner {
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .aeronDirectoryName(aeronDirectoryName)
         .clusterDir(new File(nodeDirName, "consensus-module-" + instance))
-        .archiveContext(aeronArchiveContext);
+        .archiveContext(aeronArchiveContext)
+        .ingressChannel("aeron:udp?term-length=64k")
+        .logChannel(addressing.logChannel())
+        .clusterMemberId(addressing.address.hashCode())
+        .clusterMembers(
+            ClusterServiceAddressing.toClusterMembers(
+                Collections.singletonList(addressing.address)));
   }
 
   private static Archive.Context archiveContext(
@@ -168,6 +203,7 @@ public class ClusterServiceRunner {
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext) {
     return new Archive.Context()
+        .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
         .aeronDirectoryName(aeronDirectoryName)
         .archiveDir(new File(nodeDirName, "archive-" + instance))
