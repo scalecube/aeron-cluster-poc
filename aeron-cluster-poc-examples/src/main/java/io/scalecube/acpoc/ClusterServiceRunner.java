@@ -65,27 +65,27 @@ public class ClusterServiceRunner {
 
     AeronArchive.Context aeronArchiveContext1 =
         aeronArchiveContext(addressing1, aeronDirectoryName);
-    AeronArchive.Context aeronArchiveContext2 =
-        aeronArchiveContext(addressing2, aeronDirectoryName);
+//    AeronArchive.Context aeronArchiveContext2 =
+//        aeronArchiveContext(addressing2, aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext1 =
         consensusModuleContext(
-            1, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-    ConsensusModule.Context consensusModuleContext2 =
-        consensusModuleContext(
-            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+            0, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
+//    ConsensusModule.Context consensusModuleContext2 =
+//        consensusModuleContext(
+//            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     Archive.Context archiveContext1 =
         archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-    Archive.Context archiveContext2 =
-        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+//    Archive.Context archiveContext2 =
+//        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
-            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
+            0, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext2 =
         clusteredServiceContext(
-            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(), countersManager);
+            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -94,8 +94,10 @@ public class ClusterServiceRunner {
             archiveContext1.errorCounter(),
             new DynamicCompositeAgent( //
                 "compositeArchiveAgent",
-                createArchiveAgent(archiveContext1, mediaDriverContext),
-                createArchiveAgent(archiveContext2, mediaDriverContext))));
+                createArchiveAgent(archiveContext1, mediaDriverContext)
+//                ,
+//                createArchiveAgent(archiveContext2, mediaDriverContext)
+            )));
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -104,8 +106,12 @@ public class ClusterServiceRunner {
             consensusModuleContext1.errorCounter(),
             new DynamicCompositeAgent( //
                 "compositeConsensusModuleAgent",
-                ExtendedConsensusModuleAgent.create(consensusModuleContext1),
-                ExtendedConsensusModuleAgent.create(consensusModuleContext2))));
+                ExtendedConsensusModuleAgent.create(consensusModuleContext1)
+//                ,
+//                ExtendedConsensusModuleAgent.create(consensusModuleContext2)
+
+
+            )));
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -184,6 +190,7 @@ public class ClusterServiceRunner {
         .archiveContext(aeronArchiveContext)
         .ingressChannel("aeron:udp?term-length=64k")
         .logChannel(addressing.logChannel())
+        .serviceCount(2)
         .clusterMemberId(addressing.address.hashCode())
         .clusterMembers(
             ClusterServiceAddressing.toClusterMembers(
