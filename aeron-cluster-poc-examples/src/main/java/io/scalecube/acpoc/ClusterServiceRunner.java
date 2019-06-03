@@ -51,18 +51,19 @@ public class ClusterServiceRunner {
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
+    //noinspection unused
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
 
     AeronArchive.Context aeronArchiveContext =
         new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext1 =
-        consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext);
+        consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
     ExtendedConsensusModuleAgent consensusModuleAgent1 =
-        new ExtendedConsensusModuleAgent(consensusModuleContext1);
+        ExtendedConsensusModuleAgent.create(consensusModuleContext1);
 
     Archive.Context archiveContext1 =
-        archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext);
+        archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone());
 
     Agent archiveAgent1 =
         Archive.launch(
@@ -84,7 +85,7 @@ public class ClusterServiceRunner {
             mediaDriverContext.countersManager());
 
     ExtendedClusteredServiceAgent serviceAgent1 =
-        new ExtendedClusteredServiceAgent(clusteredServiceContext1);
+        ExtendedClusteredServiceAgent.create(clusteredServiceContext1);
 
     AgentRunner.startOnThread(
         new AgentRunner(
