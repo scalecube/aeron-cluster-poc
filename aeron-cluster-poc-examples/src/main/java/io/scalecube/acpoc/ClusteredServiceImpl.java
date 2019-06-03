@@ -41,14 +41,22 @@ public class ClusteredServiceImpl implements ClusteredService {
     this.countersManager = countersManager;
   }
 
-  @Override
-  public void onStart(Cluster cluster) {
-    this.cluster = cluster;
+  private void onStart(Cluster cluster) {
     logger.info(
         "onStart => memberId: {}, role: {}, client-sessions: {}",
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+  }
+
+  @Override
+  public void onStart(Cluster cluster, Image snapshotImage) {
+    this.cluster = cluster;
+    if (snapshotImage == null) {
+      onStart(cluster);
+    } else {
+      onLoadSnapshot(snapshotImage);
+    }
   }
 
   @Override
@@ -142,8 +150,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         offer);
   }
 
-  @Override
-  public void onLoadSnapshot(Image snapshotImage) {
+  private void onLoadSnapshot(Image snapshotImage) {
     logger.info(
         "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, "
             + "streamId: {}, position: {}",

@@ -22,7 +22,7 @@
   </scm>
 
   <properties>
-    <aeron.version>1.17.0</aeron.version>
+    <aeron.version>1.19.1</aeron.version>
 
     <reactor.version>Californium-SR5</reactor.version>
 
