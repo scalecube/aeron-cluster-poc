@@ -18,11 +18,11 @@ import io.aeron.cluster.ConsensusModule.Context;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-public class ClusterServiceAddressing {
+public class ClusteredServiceAddressing {
 
   final Address address;
 
-  public ClusterServiceAddressing(Address address) {
+  public ClusteredServiceAddressing(Address address) {
     this.address = address;
   }
 
@@ -155,8 +155,8 @@ public class ClusterServiceAddressing {
    */
   public static String toClusterMembers(Collection<Address> clusterMembers) {
     return clusterMembers.stream()
-        .map(ClusterServiceAddressing::new)
-        .map(ClusterServiceAddressing::asString)
+        .map(ClusteredServiceAddressing::new)
+        .map(ClusteredServiceAddressing::asString)
         .collect(Collectors.joining("|"));
   }
 
@@ -194,6 +194,6 @@ public class ClusterServiceAddressing {
 
   @Override
   public String toString() {
-    return "ClusterServiceAddressing{" + asString() + "}";
+    return "ClusteredServiceAddressing{" + asString() + "}";
   }
 }

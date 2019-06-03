@@ -12,7 +12,6 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
-import io.aeron.driver.status.SystemCounterDescriptor;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -51,43 +50,42 @@ public class ClusteredServiceRunner {
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
-    ClusterServiceAddressing addressing1 =
-        new ClusterServiceAddressing(Address.create("localhost", 8000));
-    //    ClusterServiceAddressing addressing2 =
-    //        new ClusterServiceAddressing(Address.create("localhost", 9000));
+    ClusteredServiceAddressing addressing1 =
+        new ClusteredServiceAddressing(Address.create("localhost", 8000));
+    ClusteredServiceAddressing addressing2 =
+        new ClusteredServiceAddressing(Address.create("localhost", 9000));
 
     System.out.println("addressing1: " + addressing1);
-    //    System.out.println("addressing2: " + addressing2);
+    System.out.println("addressing2: " + addressing2);
 
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
-    MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
+    MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext);
     CountersManager countersManager = mediaDriver.context().countersManager();
     ClusteredServiceImpl clusteredService = new ClusteredServiceImpl(countersManager);
 
     AeronArchive.Context aeronArchiveContext1 =
         aeronArchiveContext(addressing1, aeronDirectoryName);
-    //    AeronArchive.Context aeronArchiveContext2 =
-    //        aeronArchiveContext(addressing2, aeronDirectoryName);
+    AeronArchive.Context aeronArchiveContext2 =
+        aeronArchiveContext(addressing2, aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext1 =
         consensusModuleContext(
             1, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-    //    ConsensusModule.Context consensusModuleContext2 =
-    //        consensusModuleContext(
-    //            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+    ConsensusModule.Context consensusModuleContext2 =
+        consensusModuleContext(
+            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     Archive.Context archiveContext1 =
         archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-    //    Archive.Context archiveContext2 =
-    //        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+    Archive.Context archiveContext2 =
+        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
             1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), clusteredService);
-    //    ClusteredServiceContainer.Context clusteredServiceContext2 =
-    //        clusteredServiceContext(
-    //            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(),
-    // countersManager);
+    ClusteredServiceContainer.Context clusteredServiceContext2 =
+        clusteredServiceContext(
+            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(), clusteredService);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -96,8 +94,8 @@ public class ClusteredServiceRunner {
             archiveContext1.errorCounter(),
             new DynamicCompositeAgent(
                 "compositeArchiveAgent",
-                createArchiveAgent(archiveContext1, mediaDriverContext) /*,
-                createArchiveAgent(archiveContext2, mediaDriverContext)*/)));
+                createArchiveAgent(archiveContext1, mediaDriverContext),
+                createArchiveAgent(archiveContext2, mediaDriverContext))));
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -106,8 +104,8 @@ public class ClusteredServiceRunner {
             consensusModuleContext1.errorCounter(),
             new DynamicCompositeAgent(
                 "compositeConsensusModuleAgent",
-                ExtendedConsensusModuleAgent.create(consensusModuleContext1) /*,
-                ExtendedConsensusModuleAgent.create(consensusModuleContext2)*/)));
+                ExtendedConsensusModuleAgent.create(consensusModuleContext1),
+                ExtendedConsensusModuleAgent.create(consensusModuleContext2))));
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -116,8 +114,8 @@ public class ClusteredServiceRunner {
             clusteredServiceContext1.errorCounter(),
             new DynamicCompositeAgent(
                 "compositeServiceAgent",
-                ExtendedClusteredServiceAgent.create(clusteredServiceContext1) /*,
-                ExtendedClusteredServiceAgent.create(clusteredServiceContext2)*/)));
+                ExtendedClusteredServiceAgent.create(clusteredServiceContext1),
+                ExtendedClusteredServiceAgent.create(clusteredServiceContext2))));
 
     Mono<Void> onShutdown =
         Utils.onShutdown(
@@ -131,7 +129,7 @@ public class ClusteredServiceRunner {
   }
 
   private static AeronArchive.Context aeronArchiveContext(
-      ClusterServiceAddressing addressing, String aeronDirectoryName) {
+      ClusteredServiceAddressing addressing, String aeronDirectoryName) {
     return new AeronArchive.Context()
         .aeronDirectoryName(aeronDirectoryName)
         .errorHandler(ex -> logger.error("Exception occurred at AeronArchive: " + ex, ex))
@@ -147,10 +145,7 @@ public class ClusteredServiceRunner {
     return Archive.launch(
             archiveContext
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .errorHandler(
-                    mediaDriverContext.errorHandler())
-                .errorCounter(
-                    mediaDriverContext.systemCounters().get(SystemCounterDescriptor.ERRORS)))
+                .errorHandler(mediaDriverContext.errorHandler()))
         .invoker()
         .agent();
   }
@@ -167,14 +162,14 @@ public class ClusteredServiceRunner {
         .aeronDirectoryName(aeronDirectoryName)
         .archiveContext(aeronArchiveContext)
         .clusterDir(new File(nodeDirName, "service-" + instance))
-        //        .serviceId(instance)
-        //        .serviceName(Integer.toHexString(instance))
+        .serviceId(instance)
+        .serviceName(Integer.toHexString(instance))
         .clusteredService(clusteredService);
   }
 
   private static ConsensusModule.Context consensusModuleContext(
       int instance,
-      ClusterServiceAddressing addressing,
+      ClusteredServiceAddressing addressing,
       String nodeDirName,
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext) {
@@ -188,7 +183,7 @@ public class ClusteredServiceRunner {
         .logChannel(addressing.logChannel())
         .clusterMemberId(addressing.address.hashCode())
         .clusterMembers(
-            ClusterServiceAddressing.toClusterMembers(
+            ClusteredServiceAddressing.toClusterMembers(
                 Collections.singletonList(addressing.address)));
   }
 
@@ -215,6 +210,7 @@ public class ClusteredServiceRunner {
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .aeronDirectoryName(aeronDirectoryName)
         .threadingMode(ThreadingMode.SHARED)
-        .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
+        .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier())
+        .spiesSimulateConnection(true);
   }
 }

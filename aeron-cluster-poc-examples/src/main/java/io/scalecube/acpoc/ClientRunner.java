@@ -19,9 +19,9 @@ import reactor.core.publisher.Mono;
 /**
  * Runner to start the cluster client that continuously sends requests to cluster.
  */
-public class ClusterClientRunner {
+public class ClientRunner {
 
-  public static final Logger logger = LoggerFactory.getLogger(ClusterClientRunner.class);
+  public static final Logger logger = LoggerFactory.getLogger(ClientRunner.class);
 
   /**
    * Main method.
