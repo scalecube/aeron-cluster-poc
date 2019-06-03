@@ -29,9 +29,9 @@ import reactor.core.publisher.Mono;
  * Main class that starts single node in cluster, though expecting most of cluster configuration
  * passed via VM args.
  */
-public class ClusterServiceRunner {
+public class ClusteredServiceRunner {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterServiceRunner.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceRunner.class);
 
   /**
    * Main function runner.
@@ -94,7 +94,7 @@ public class ClusterServiceRunner {
             archiveContext1.idleStrategy(),
             archiveContext1.errorHandler(),
             archiveContext1.errorCounter(),
-            new DynamicCompositeAgent( //
+            new DynamicCompositeAgent(
                 "compositeArchiveAgent",
                 createArchiveAgent(archiveContext1, mediaDriverContext) /*,
                 createArchiveAgent(archiveContext2, mediaDriverContext)*/)));
@@ -104,7 +104,7 @@ public class ClusterServiceRunner {
             consensusModuleContext1.idleStrategy(),
             consensusModuleContext1.errorHandler(),
             consensusModuleContext1.errorCounter(),
-            new DynamicCompositeAgent( //
+            new DynamicCompositeAgent(
                 "compositeConsensusModuleAgent",
                 ExtendedConsensusModuleAgent.create(consensusModuleContext1) /*,
                 ExtendedConsensusModuleAgent.create(consensusModuleContext2)*/)));
@@ -114,7 +114,7 @@ public class ClusterServiceRunner {
             clusteredServiceContext1.idleStrategy(),
             clusteredServiceContext1.errorHandler(),
             clusteredServiceContext1.errorCounter(),
-            new DynamicCompositeAgent( //
+            new DynamicCompositeAgent(
                 "compositeServiceAgent",
                 ExtendedClusteredServiceAgent.create(clusteredServiceContext1) /*,
                 ExtendedClusteredServiceAgent.create(clusteredServiceContext2)*/)));
@@ -147,7 +147,7 @@ public class ClusterServiceRunner {
     return Archive.launch(
             archiveContext
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .errorHandler( //
+                .errorHandler(
                     mediaDriverContext.errorHandler())
                 .errorCounter(
                     mediaDriverContext.systemCounters().get(SystemCounterDescriptor.ERRORS)))
