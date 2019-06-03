@@ -2,6 +2,7 @@ package io.aeron.cluster;
 
 import io.aeron.Aeron;
 import io.aeron.archive.Archive;
+import io.aeron.archive.Archive.Context;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.service.ClusteredServiceContainer;
@@ -14,11 +15,15 @@ import io.scalecube.acpoc.ClusteredServiceImpl;
 import io.scalecube.acpoc.Configurations;
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.agrona.IoUtil;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.DynamicCompositeAgent;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.YieldingIdleStrategy;
+import org.agrona.concurrent.status.AtomicCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +45,8 @@ public class ClusterServiceSharedAeronRunner {
     //    String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
     //    String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", "shared").toString();
+
+    new File(nodeDirName).deleteOnExit();
 
     if (Configurations.CLEAN_START) {
       IoUtil.delete(new File(nodeDirName), true);
@@ -85,6 +92,8 @@ public class ClusterServiceSharedAeronRunner {
               .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
               .aeron(aeron)
               .ownsAeronClient(false)
+              .errorHandler(Throwable::printStackTrace)
+              .errorCounter(mediaDriverCtx.systemCounters().get(SystemCounterDescriptor.ERRORS))
               .archiveDir(new File(nodeDirName, "archive-" + i))
               .controlChannel(aeronArchiveCtxs[i].controlRequestChannel())
               .controlStreamId(aeronArchiveCtxs[i].controlRequestStreamId())
@@ -95,9 +104,11 @@ public class ClusterServiceSharedAeronRunner {
 
     Agent[] archiveAgents = new Agent[size];
     for (int i = 0; i < size; i++) {
+      Context archiveCtx = archiveCtxs[i].clone();
+      //      archiveCtx.conclude();
       Archive archive =
           Archive.launch(
-              archiveCtxs[i]
+              archiveCtx
                   .aeron(aeron)
                   .ownsAeronClient(false)
                   .errorHandler(mediaDriverCtx.errorHandler())
@@ -108,38 +119,47 @@ public class ClusterServiceSharedAeronRunner {
 
     Agent[] consensusModuleAgents = new Agent[size];
     for (int i = 0; i < size; i++) {
-      consensusModuleAgents[i] =
-          new ConsensusModuleAgent(
-              new ConsensusModule.Context()
-                  .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
-                  .aeron(aeron)
-                  .ownsAeronClient(false)
-                  .clusterDir(new File(nodeDirName, "consensus-module-" + i))
-                  .idleStrategySupplier(() -> new YieldingIdleStrategy())
-                  // .clusterNodeCounter(// todo)
-                  .archiveContext(aeronArchiveCtxs[i].clone()));
+      ConsensusModule.Context ctx =
+          new ConsensusModule.Context()
+              .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+              .errorCounter(mediaDriverCtx.systemCounters().get(SystemCounterDescriptor.ERRORS))
+              .aeron(aeron)
+              .ownsAeronClient(false)
+              .clusterDir(new File(nodeDirName, "consensus-module-" + i))
+              .idleStrategySupplier(() -> new YieldingIdleStrategy())
+              //          .clusterNodeCounter(// todo)
+              .archiveContext(aeronArchiveCtxs[i].clone());
+      ctx.conclude();
+
+      consensusModuleAgents[i] = new ConsensusModuleAgent(ctx);
     }
 
     Agent[] clusteredServiceAgents = new Agent[size];
     for (int i = 0; i < size; i++) {
-      clusteredServiceAgents[i] =
-          new ExtendedClusteredServiceAgent(
-              new ClusteredServiceContainer.Context()
-                  .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
-                  .aeron(aeron)
-                  .ownsAeronClient(false)
-                  .archiveContext(aeronArchiveCtxs[i].clone())
-                  .clusterDir(new File(nodeDirName, "service-" + i))
-                  .clusteredService(new ClusteredServiceImpl(mediaDriverCtx.countersManager())));
+      ClusteredServiceContainer.Context ctx =
+          new ClusteredServiceContainer.Context()
+              .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+              .aeron(aeron)
+              .ownsAeronClient(false)
+              .archiveContext(aeronArchiveCtxs[i].clone())
+              .clusterDir(new File(nodeDirName, "service-" + i))
+              .clusteredService(new ClusteredServiceImpl(mediaDriverCtx.countersManager()));
+      ctx.conclude();
+      clusteredServiceAgents[i] = new ExtendedClusteredServiceAgent(ctx);
     }
 
-    Agent[] agents = new Agent[size * 3];
+    ArrayList<Agent> tmp = new ArrayList<>();
 
-    for (int i = 0; i < size; i++) {
-      agents[i * size] = archiveAgents[i];
-      agents[(i + 1) * size] = consensusModuleAgents[i];
-      agents[(i + 2) * size] = clusteredServiceAgents[i];
-    }
+    tmp.addAll(Arrays.asList(archiveAgents));
+    tmp.addAll(Arrays.asList(consensusModuleAgents));
+    tmp.addAll(Arrays.asList(clusteredServiceAgents));
+
+    Agent[] agents =
+        tmp.toArray(
+            new Agent
+                [archiveAgents.length
+                    + consensusModuleAgents.length
+                    + clusteredServiceAgents.length]);
 
     DynamicCompositeAgent compositeAgent = new DynamicCompositeAgent("composite", agents);
 
