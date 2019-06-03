@@ -95,7 +95,6 @@ public class ClusterServiceRunner {
             aeronArchiveContext2.clone(),
             mediaDriverContext.countersManager());
 
-    archiveContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             archiveContext1.idleStrategy(),
@@ -106,7 +105,6 @@ public class ClusterServiceRunner {
                 createArchiveAgent(archiveContext1, mediaDriverContext),
                 createArchiveAgent(archiveContext2, mediaDriverContext))));
 
-    consensusModuleContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             consensusModuleContext1.idleStrategy(),
@@ -117,7 +115,6 @@ public class ClusterServiceRunner {
                 ExtendedConsensusModuleAgent.create(consensusModuleContext1),
                 ExtendedConsensusModuleAgent.create(consensusModuleContext2))));
 
-    clusteredServiceContext1.conclude();
     AgentRunner.startOnThread(
         new AgentRunner(
             clusteredServiceContext1.idleStrategy(),
@@ -172,6 +169,7 @@ public class ClusterServiceRunner {
       CountersManager countersManager) {
     return new ClusteredServiceContainer.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+        .idleStrategySupplier(Archive.Configuration.idleStrategySupplier(null))
         .aeronDirectoryName(aeronDirectoryName)
         .archiveContext(aeronArchiveContext)
         .clusterDir(new File(nodeDirName, "service-" + instance))
@@ -186,6 +184,7 @@ public class ClusterServiceRunner {
       AeronArchive.Context aeronArchiveContext) {
     return new ConsensusModule.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+        .idleStrategySupplier(Archive.Configuration.idleStrategySupplier(null))
         .aeronDirectoryName(aeronDirectoryName)
         .clusterDir(new File(nodeDirName, "consensus-module-" + instance))
         .archiveContext(aeronArchiveContext)
@@ -204,6 +203,7 @@ public class ClusterServiceRunner {
       AeronArchive.Context aeronArchiveContext) {
     return new Archive.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+        .idleStrategySupplier(Archive.Configuration.idleStrategySupplier(null))
         .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
         .aeronDirectoryName(aeronDirectoryName)
         .archiveDir(new File(nodeDirName, "archive-" + instance))

@@ -42,13 +42,17 @@ public class ClusteredServiceImpl implements ClusteredService {
   }
 
   @Override
-  public void onStart(Cluster cluster) {
+  public void onStart(Cluster cluster, Image image) {
     this.cluster = cluster;
     logger.info(
         "onStart => memberId: {}, role: {}, client-sessions: {}",
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+
+    if (image != null) {
+      onLoadSnapshot(image);
+    }
   }
 
   @Override
@@ -142,8 +146,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         offer);
   }
 
-  @Override
-  public void onLoadSnapshot(Image snapshotImage) {
+  private void onLoadSnapshot(Image snapshotImage) {
     logger.info(
         "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, "
             + "streamId: {}, position: {}",
