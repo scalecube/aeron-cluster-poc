@@ -3,12 +3,11 @@ package io.scalecube.acpoc;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
-import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
-import io.aeron.cluster.ExtendedClusteredMediaDriver;
 import io.aeron.cluster.ExtendedConsensusModuleAgent;
 import io.aeron.cluster.service.ClusteredServiceContainer;
+import io.aeron.cluster.service.ExtendedClusteredServiceAgent;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
@@ -16,9 +15,9 @@ import io.aeron.driver.ThreadingMode;
 import io.aeron.driver.status.SystemCounterDescriptor;
 import java.io.File;
 import java.nio.file.Paths;
-import org.agrona.CloseHelper;
 import org.agrona.IoUtil;
-import org.agrona.concurrent.AgentRunner;
+import org.agrona.concurrent.Agent;
+import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -55,15 +54,9 @@ public class ClusterServiceRunner {
     AeronArchive.Context aeronArchiveContext =
         new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
-    ConsensusModule.Context consensusModuleContext =
-        consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext);
-
-    AgentRunner consensusModuleAgentRunner =
-        new AgentRunner(
-            consensusModuleContext.idleStrategy(),
-            consensusModuleContext.errorHandler(),
-            consensusModuleContext.errorCounter(),
-            new ExtendedConsensusModuleAgent(consensusModuleContext));
+    ExtendedConsensusModuleAgent consensusModuleAgent =
+        new ExtendedConsensusModuleAgent(
+            consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext));
 
     Archive.Context archiveContext =
         archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext);
@@ -71,27 +64,26 @@ public class ClusterServiceRunner {
     Archive archive =
         Archive.launch(
             archiveContext
-                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
+                .threadingMode(ArchiveThreadingMode.INVOKER)
                 .errorHandler( //
                     mediaDriverContext.errorHandler())
                 .errorCounter(
                     mediaDriverContext.systemCounters().get(SystemCounterDescriptor.ERRORS)));
 
-    ClusteredMediaDriver clusteredMediaDriver =
-        new ExtendedClusteredMediaDriver(mediaDriver, archive, consensusModule);
+    Agent archiveConductor = archive.invoker().agent();
 
-    ClusteredServiceContainer.Context clusteredServiceContext =
-        clusteredServiceContext(
-            1, nodeDirName, aeronDirectoryName, aeronArchiveContext, clusteredMediaDriver);
-
-    ClusteredServiceContainer clusteredServiceContainer =
-        ClusteredServiceContainer.launch(clusteredServiceContext);
+    ExtendedClusteredServiceAgent clusteredServiceAgent =
+        new ExtendedClusteredServiceAgent(
+            clusteredServiceContext(
+                1,
+                nodeDirName,
+                aeronDirectoryName,
+                aeronArchiveContext,
+                mediaDriverContext.countersManager()));
 
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              CloseHelper.close(clusteredMediaDriver);
-              CloseHelper.close(clusteredServiceContainer);
               if (Configurations.CLEAN_SHUTDOWN) {
                 IoUtil.delete(new File(nodeDirName), true);
               }
@@ -105,15 +97,13 @@ public class ClusterServiceRunner {
       String nodeDirName,
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext,
-      ClusteredMediaDriver clusteredMediaDriver) {
+      CountersManager countersManager) {
     return new ClusteredServiceContainer.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .aeronDirectoryName(aeronDirectoryName)
         .archiveContext(aeronArchiveContext.clone())
         .clusterDir(new File(nodeDirName, "service-" + instance))
-        .clusteredService(
-            new ClusteredServiceImpl(
-                clusteredMediaDriver.mediaDriver().context().countersManager()));
+        .clusteredService(new ClusteredServiceImpl(countersManager));
   }
 
   private static ConsensusModule.Context consensusModuleContext(
