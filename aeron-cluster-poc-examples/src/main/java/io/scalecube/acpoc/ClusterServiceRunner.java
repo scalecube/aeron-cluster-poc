@@ -53,39 +53,41 @@ public class ClusterServiceRunner {
 
     ClusterServiceAddressing addressing1 =
         new ClusterServiceAddressing(Address.create("localhost", 8000));
-//    ClusterServiceAddressing addressing2 =
-//        new ClusterServiceAddressing(Address.create("localhost", 9000));
+    //    ClusterServiceAddressing addressing2 =
+    //        new ClusterServiceAddressing(Address.create("localhost", 9000));
 
     System.out.println("addressing1: " + addressing1);
-//    System.out.println("addressing2: " + addressing2);
+    //    System.out.println("addressing2: " + addressing2);
 
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
     CountersManager countersManager = mediaDriver.context().countersManager();
+    ClusteredServiceImpl clusteredService = new ClusteredServiceImpl(countersManager);
 
     AeronArchive.Context aeronArchiveContext1 =
         aeronArchiveContext(addressing1, aeronDirectoryName);
-//    AeronArchive.Context aeronArchiveContext2 =
-//        aeronArchiveContext(addressing2, aeronDirectoryName);
+    //    AeronArchive.Context aeronArchiveContext2 =
+    //        aeronArchiveContext(addressing2, aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext1 =
         consensusModuleContext(
             1, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-//    ConsensusModule.Context consensusModuleContext2 =
-//        consensusModuleContext(
-//            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+    //    ConsensusModule.Context consensusModuleContext2 =
+    //        consensusModuleContext(
+    //            2, addressing2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     Archive.Context archiveContext1 =
         archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
-//    Archive.Context archiveContext2 =
-//        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
+    //    Archive.Context archiveContext2 =
+    //        archiveContext(2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone());
 
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
-            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
-//    ClusteredServiceContainer.Context clusteredServiceContext2 =
-//        clusteredServiceContext(
-//            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(), countersManager);
+            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), clusteredService);
+    //    ClusteredServiceContainer.Context clusteredServiceContext2 =
+    //        clusteredServiceContext(
+    //            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(),
+    // countersManager);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -94,7 +96,7 @@ public class ClusterServiceRunner {
             archiveContext1.errorCounter(),
             new DynamicCompositeAgent( //
                 "compositeArchiveAgent",
-                createArchiveAgent(archiveContext1, mediaDriverContext)/*,
+                createArchiveAgent(archiveContext1, mediaDriverContext) /*,
                 createArchiveAgent(archiveContext2, mediaDriverContext)*/)));
 
     AgentRunner.startOnThread(
@@ -104,7 +106,7 @@ public class ClusterServiceRunner {
             consensusModuleContext1.errorCounter(),
             new DynamicCompositeAgent( //
                 "compositeConsensusModuleAgent",
-                ExtendedConsensusModuleAgent.create(consensusModuleContext1)/*,
+                ExtendedConsensusModuleAgent.create(consensusModuleContext1) /*,
                 ExtendedConsensusModuleAgent.create(consensusModuleContext2)*/)));
 
     AgentRunner.startOnThread(
@@ -158,16 +160,16 @@ public class ClusterServiceRunner {
       String nodeDirName,
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext,
-      CountersManager countersManager) {
+      ClusteredServiceImpl clusteredService) {
     return new ClusteredServiceContainer.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .idleStrategySupplier(Archive.Configuration.idleStrategySupplier(null))
         .aeronDirectoryName(aeronDirectoryName)
         .archiveContext(aeronArchiveContext)
         .clusterDir(new File(nodeDirName, "service-" + instance))
-//        .serviceId(instance)
-//        .serviceName(Integer.toHexString(instance))
-        .clusteredService(new ClusteredServiceImpl(countersManager));
+        //        .serviceId(instance)
+        //        .serviceName(Integer.toHexString(instance))
+        .clusteredService(clusteredService);
   }
 
   private static ConsensusModule.Context consensusModuleContext(
