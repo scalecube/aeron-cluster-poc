@@ -60,8 +60,8 @@ public class ClusterServiceRunner {
     System.out.println("addressing2: " + addressing2);
 
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
-    //noinspection unused
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
+    CountersManager countersManager = mediaDriver.context().countersManager();
 
     AeronArchive.Context aeronArchiveContext1 =
         aeronArchiveContext(addressing1, aeronDirectoryName);
@@ -82,18 +82,10 @@ public class ClusterServiceRunner {
 
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
-            1,
-            nodeDirName,
-            aeronDirectoryName,
-            aeronArchiveContext1.clone(),
-            mediaDriverContext.countersManager());
+            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext2 =
         clusteredServiceContext(
-            2,
-            nodeDirName,
-            aeronDirectoryName,
-            aeronArchiveContext2.clone(),
-            mediaDriverContext.countersManager());
+            2, nodeDirName, aeronDirectoryName, aeronArchiveContext2.clone(), countersManager);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -173,6 +165,8 @@ public class ClusterServiceRunner {
         .aeronDirectoryName(aeronDirectoryName)
         .archiveContext(aeronArchiveContext)
         .clusterDir(new File(nodeDirName, "service-" + instance))
+        .serviceId(instance)
+        .serviceName(Integer.toHexString(instance))
         .clusteredService(new ClusteredServiceImpl(countersManager));
   }
 
