@@ -49,11 +49,11 @@ public class ClusterServiceRunner {
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
 
-    AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
-
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext.spiesSimulateConnection(true));
+
+    AeronArchive.Context aeronArchiveContext =
+        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
     ConsensusModule.Context consensusModuleContext =
         consensusModuleContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext);
