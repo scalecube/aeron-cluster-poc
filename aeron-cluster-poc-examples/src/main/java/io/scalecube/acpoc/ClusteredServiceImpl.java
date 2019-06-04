@@ -184,7 +184,7 @@ public class ClusteredServiceImpl implements ClusteredService {
     }
     if (newRole == Role.LEADER) {
       AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      scheduleSnaphot(controlToggle);
+      // scheduleSnaphot(controlToggle);
       // schedule(controlToggle, ToggleState.SUSPEND, Duration.ofSeconds(20));
       // schedule(controlToggle, ToggleState.RESUME, Duration.ofSeconds(25));
     }

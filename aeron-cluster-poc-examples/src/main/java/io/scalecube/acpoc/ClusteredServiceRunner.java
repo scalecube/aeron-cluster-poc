@@ -58,7 +58,6 @@ public class ClusteredServiceRunner {
     MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
     MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext);
     CountersManager countersManager = mediaDriver.context().countersManager();
-    ClusteredServiceImpl clusteredService = new ClusteredServiceImpl(countersManager);
 
     AeronArchive.Context aeronArchiveContext = aeronArchiveContext(addressing, aeronDirectoryName);
 
@@ -71,19 +70,19 @@ public class ClusteredServiceRunner {
 
     ClusteredServiceContainer.Context clusteredServiceContext0 =
         clusteredServiceContext(
-            0, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), clusteredService);
+            0, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
-            1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), clusteredService);
+            1, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext2 =
         clusteredServiceContext(
-            2, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), clusteredService);
+            2, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext3 =
         clusteredServiceContext(
-            3, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), clusteredService);
+            3, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), countersManager);
     ClusteredServiceContainer.Context clusteredServiceContext4 =
         clusteredServiceContext(
-            4, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), clusteredService);
+            4, nodeDirName, aeronDirectoryName, aeronArchiveContext.clone(), countersManager);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -153,7 +152,7 @@ public class ClusteredServiceRunner {
       String nodeDirName,
       String aeronDirectoryName,
       AeronArchive.Context aeronArchiveContext,
-      ClusteredServiceImpl clusteredService) {
+      CountersManager countersManager) {
     return new ClusteredServiceContainer.Context()
         .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
         .idleStrategySupplier(Archive.Configuration.idleStrategySupplier(null))
@@ -162,7 +161,7 @@ public class ClusteredServiceRunner {
         .clusterDir(new File(nodeDirName, "service-" + instance))
         .serviceId(instance)
         .serviceName(Integer.toHexString(instance))
-        .clusteredService(clusteredService);
+        .clusteredService(new ClusteredServiceImpl(countersManager));
   }
 
   private static ConsensusModule.Context consensusModuleContext(
