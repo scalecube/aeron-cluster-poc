@@ -48,7 +48,8 @@ public class ClusteredServiceRunner {
 
     System.out.println("Cluster node directory: " + nodeDirName);
 
-    String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
+    String aeronDirectoryName0 = Paths.get(nodeDirName, "media-0").toString();
+    String aeronDirectoryName1 = Paths.get(nodeDirName, "media-1").toString();
 
     ClusteredServiceAddressing addressing0 =
         new ClusteredServiceAddressing(Address.create("localhost", 8000));
@@ -58,33 +59,37 @@ public class ClusteredServiceRunner {
     System.out.println("addressing0: " + addressing0);
     System.out.println("addressing1: " + addressing1);
 
-    MediaDriver.Context mediaDriverContext = mediaDriverContext(aeronDirectoryName);
-    MediaDriver mediaDriver = MediaDriver.launch(mediaDriverContext);
-    CountersManager countersManager = mediaDriver.context().countersManager();
+    MediaDriver.Context mediaDriverContext0 = mediaDriverContext(aeronDirectoryName0);
+    MediaDriver mediaDriver0 = MediaDriver.launch(mediaDriverContext0);
+    CountersManager countersManager0 = mediaDriver0.context().countersManager();
+
+    MediaDriver.Context mediaDriverContext1 = mediaDriverContext(aeronDirectoryName1);
+    MediaDriver mediaDriver1 = MediaDriver.launch(mediaDriverContext1);
+    CountersManager countersManager1 = mediaDriver1.context().countersManager();
 
     AeronArchive.Context aeronArchiveContext0 =
-        aeronArchiveContext(addressing0, aeronDirectoryName);
+        aeronArchiveContext(addressing0, aeronDirectoryName0);
     AeronArchive.Context aeronArchiveContext1 =
-        aeronArchiveContext(addressing1, aeronDirectoryName);
+        aeronArchiveContext(addressing1, aeronDirectoryName1);
 
     ConsensusModule.Context consensusModuleContext0 =
         consensusModuleContext(
-            0, addressing0, nodeDirName, aeronDirectoryName, aeronArchiveContext0.clone());
+            0, addressing0, nodeDirName, aeronDirectoryName0, aeronArchiveContext0.clone());
     ConsensusModule.Context consensusModuleContext1 =
         consensusModuleContext(
-            1, addressing1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
+            1, addressing1, nodeDirName, aeronDirectoryName1, aeronArchiveContext1.clone());
 
     Archive.Context archiveContext0 =
-        archiveContext(0, nodeDirName, aeronDirectoryName, aeronArchiveContext0.clone());
+        archiveContext(0, nodeDirName, aeronDirectoryName0, aeronArchiveContext0.clone());
     Archive.Context archiveContext1 =
-        archiveContext(1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone());
+        archiveContext(1, nodeDirName, aeronDirectoryName1, aeronArchiveContext1.clone());
 
     ClusteredServiceContainer.Context clusteredServiceContext0 =
         clusteredServiceContext(
-            0, nodeDirName, aeronDirectoryName, aeronArchiveContext0.clone(), countersManager);
+            0, nodeDirName, aeronDirectoryName0, aeronArchiveContext0.clone(), countersManager0);
     ClusteredServiceContainer.Context clusteredServiceContext1 =
         clusteredServiceContext(
-            1, nodeDirName, aeronDirectoryName, aeronArchiveContext1.clone(), countersManager);
+            1, nodeDirName, aeronDirectoryName1, aeronArchiveContext1.clone(), countersManager1);
 
     AgentRunner.startOnThread(
         new AgentRunner(
@@ -93,8 +98,8 @@ public class ClusteredServiceRunner {
             archiveContext0.errorCounter(),
             new DynamicCompositeAgent(
                 "compositeArchiveAgent",
-                createArchiveAgent(archiveContext0, mediaDriverContext),
-                createArchiveAgent(archiveContext1, mediaDriverContext))));
+                createArchiveAgent(archiveContext0, mediaDriverContext0),
+                createArchiveAgent(archiveContext1, mediaDriverContext1))));
 
     AgentRunner.startOnThread(
         new AgentRunner(
