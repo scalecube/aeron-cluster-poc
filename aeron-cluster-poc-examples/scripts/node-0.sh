@@ -20,8 +20,8 @@ java \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20550" \
 -Dio.scalecube.acpoc.instanceId=n0 \
--Dio.scalecube.acpoc.cleanStart=true \
--Dio.scalecube.acpoc.cleanShutdown=true \
+-Dio.scalecube.acpoc.cleanStart=false \
+-Dio.scalecube.acpoc.cleanShutdown=false \
 -Dio.scalecube.acpoc.snapshotPeriodSecs=99999 \
 -Daeron.cluster.session.timeout=30000000000 \
 -Daeron.cluster.leader.heartbeat.timeout=2000000000 \

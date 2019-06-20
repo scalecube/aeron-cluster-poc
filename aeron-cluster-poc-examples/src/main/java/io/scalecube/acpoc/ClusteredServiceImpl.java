@@ -12,6 +12,7 @@ import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import java.time.Duration;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -90,9 +91,9 @@ public class ClusteredServiceImpl implements ClusteredService {
     String message = new String(bytes);
 
     logger.info(
-        "onSessionMessage, timestampMs: {} => memberId: {}, "
+        "############ onSessionMessage, timestampMs: {} => memberId: {}, "
             + "sessionId: {}, position: {}, content: '{}'",
-        timestampMs,
+        new Date(timestampMs),
         cluster.memberId(),
         session.id(),
         header.position(),
@@ -100,6 +101,9 @@ public class ClusteredServiceImpl implements ClusteredService {
 
     // Updated service state
     int value = serviceCounter.incrementAndGet();
+
+    // Schedule timer
+    cluster.scheduleTimer(value, cluster.timeMs() + 10000);
 
     if (cluster.role() == Role.LEADER) {
       // Send response back
@@ -113,10 +117,12 @@ public class ClusteredServiceImpl implements ClusteredService {
   @Override
   public void onTimerEvent(long correlationId, long timestampMs) {
     logger.info(
-        "onTimerEvent, timestampMs: {} => memberId: {}, correlationId: {}",
-        timestampMs,
+        "******** onTimerEvent ******** timestampMs: {} => memberId: {}, correlationId: {}",
+        new Date(timestampMs),
         cluster.memberId(),
         correlationId);
+
+    // cluster.scheduleTimer(ThreadLocalRandom.current().nextLong(), 3000);
   }
 
   @Override
