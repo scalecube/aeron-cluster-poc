@@ -23,5 +23,5 @@ java \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20554" \
 -Dio.scalecube.acpoc.cleanStart=true \
 -Dio.scalecube.acpoc.cleanShutdown=true \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusterServiceRunner
+  ${JVM_OPTS} io.scalecube.acpoc.ClusteredServiceRunner
 

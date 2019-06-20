@@ -24,9 +24,9 @@ import reactor.core.publisher.Mono;
  * Main class that starts single node in cluster, though expecting most of cluster configuration
  * passed via VM args.
  */
-public class ClusterServiceRunner {
+public class ClusteredServiceRunner {
 
-  private static final Logger logger = LoggerFactory.getLogger(ClusterServiceRunner.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceRunner.class);
 
   /**
    * Main function runner.
