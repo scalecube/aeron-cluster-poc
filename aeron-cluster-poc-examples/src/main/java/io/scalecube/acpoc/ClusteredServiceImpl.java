@@ -14,6 +14,7 @@ import io.aeron.logbuffer.Header;
 import java.time.Duration;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
@@ -35,6 +36,8 @@ public class ClusteredServiceImpl implements ClusteredService {
   // State
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
+
+  private final AtomicLong timerIdCounter = new AtomicLong();
 
   private Disposable snapshotDisposable;
 
@@ -103,7 +106,7 @@ public class ClusteredServiceImpl implements ClusteredService {
     int value = serviceCounter.incrementAndGet();
 
     // Schedule timer
-    cluster.scheduleTimer(value, cluster.timeMs() + 10000);
+    cluster.scheduleTimer(timerIdCounter.incrementAndGet(), cluster.timeMs() + 10000);
 
     if (cluster.role() == Role.LEADER) {
       // Send response back
@@ -122,7 +125,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         correlationId);
 
-    // cluster.scheduleTimer(ThreadLocalRandom.current().nextLong(), 3000);
+    cluster.scheduleTimer(timerIdCounter.incrementAndGet(), cluster.timeMs() + 10000);
   }
 
   @Override
