@@ -26,13 +26,15 @@ public class InteractiveClient {
   private static MediaDriver clientMediaDriver;
   private static AeronCluster client;
   private static Disposable receiver;
-  private static final BiConsumer<String, AeronCluster> stringSender = (str, client) -> {
-    String request = "REQ:" + str;
-    byte[] bytes = request.getBytes(StandardCharsets.UTF_8);
-    UnsafeBuffer buffer = new UnsafeBuffer(bytes);
-    long l = client.offer(buffer, 0, bytes.length);
-    logger.info("Client: REQUEST {} sent, result={}", request, l);
-  };
+  private static final BiConsumer<String, AeronCluster> stringSender =
+      (str, client) -> {
+        byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
+        UnsafeBuffer buffer = new UnsafeBuffer(bytes);
+        long l = client.offer(buffer, 0, bytes.length);
+        if (l > 0) {
+          logger.info("Client: REQUEST '{}' sent, result={}", str, l);
+        }
+      };
 
   /**
    * Main method.
@@ -52,8 +54,9 @@ public class InteractiveClient {
 
     Executors.newSingleThreadExecutor().submit(inputPollJob());
 
-    receiver = Flux.interval(Duration.ofMillis(100)) //
-        .subscribe(i -> client.pollEgress());
+    receiver =
+        Flux.interval(Duration.ofMillis(100)) //
+            .subscribe(i -> client.pollEgress());
     Mono<Void> onShutdown = Utils.onShutdown(shutdownHook(clientDirName));
     onShutdown.block();
   }
@@ -62,8 +65,8 @@ public class InteractiveClient {
     return () -> {
       while (true) {
         Scanner scanner = new Scanner(System.in);
-        System.out
-            .println("Type request body and press enter to send to Aeron cluster. Q to quit... ");
+        System.out.println(
+            "Type request body and press enter to send to Aeron cluster. Q to quit... ");
         String payload = scanner.nextLine();
         if ("Q".equals(payload)) {
           break;
@@ -72,7 +75,6 @@ public class InteractiveClient {
       }
       System.exit(0);
     };
-
   }
 
   private static Callable shutdownHook(String clientDirName) {
@@ -90,11 +92,12 @@ public class InteractiveClient {
 
   private static void startClient(String clientDirName) {
     System.out.println("Client starting.");
-    clientMediaDriver = MediaDriver.launch(
-        new MediaDriver.Context()
-            .threadingMode(ThreadingMode.SHARED)
-            .warnIfDirectoryExists(true)
-            .aeronDirectoryName(clientDirName));
+    clientMediaDriver =
+        MediaDriver.launch(
+            new MediaDriver.Context()
+                .threadingMode(ThreadingMode.SHARED)
+                .warnIfDirectoryExists(true)
+                .aeronDirectoryName(clientDirName));
     client =
         AeronCluster.connect(
             new AeronCluster.Context()

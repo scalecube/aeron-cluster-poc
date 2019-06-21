@@ -11,7 +11,7 @@ import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
-import java.time.Duration;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -19,9 +19,6 @@ import org.agrona.concurrent.status.AtomicCounter;
 import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class ClusteredServiceImpl implements ClusteredService {
 
@@ -34,8 +31,6 @@ public class ClusteredServiceImpl implements ClusteredService {
   // State
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
-
-  private Disposable snapshotDisposable;
 
   public ClusteredServiceImpl(CountersManager countersManager) {
     this.countersManager = countersManager;
@@ -90,9 +85,9 @@ public class ClusteredServiceImpl implements ClusteredService {
     String message = new String(bytes);
 
     logger.info(
-        "onSessionMessage, timestampMs: {} => memberId: {}, "
+        "### onSessionMessage, timestampMs: {} => memberId: {}, "
             + "sessionId: {}, position: {}, content: '{}'",
-        timestampMs,
+        new Date(timestampMs),
         cluster.memberId(),
         session.id(),
         header.position(),
@@ -101,22 +96,33 @@ public class ClusteredServiceImpl implements ClusteredService {
     // Updated service state
     int value = serviceCounter.incrementAndGet();
 
+    if ("snapshot".equalsIgnoreCase(message)) {
+      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+      toggle(controlToggle, ToggleState.SNAPSHOT);
+    }
+
     if (cluster.role() == Role.LEADER) {
       // Send response back
       String response = message + ", ClusteredService.serviceCounter(value=" + value + ")";
       UnsafeBuffer buffer1 = new UnsafeBuffer(response.getBytes());
       long l = session.offer(buffer1, 0, buffer1.capacity());
-      logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+      if (l > 0) {
+        logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+      }
     }
   }
 
   @Override
   public void onTimerEvent(long correlationId, long timestampMs) {
     logger.info(
-        "onTimerEvent, timestampMs: {} => memberId: {}, correlationId: {}",
-        timestampMs,
+        "*** onTimerEvent timestampMs: {} => memberId: {}, correlationId: {}",
+        new Date(timestampMs),
         cluster.memberId(),
         correlationId);
+
+    if (cluster.role() == Role.LEADER) {
+      cluster.scheduleTimer(1, cluster.timeMs() + 10000);
+    }
   }
 
   @Override
@@ -174,16 +180,21 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   @Override
   public void onRoleChange(Cluster.Role newRole) {
-    logger.info("onRoleChange => memberId: {}, new role: {}", cluster.memberId(), newRole);
-    // Schedule process of taking snapshot if on leader
-    if (snapshotDisposable != null) {
-      snapshotDisposable.dispose();
-    }
+    logger.info(
+        "onRoleChange => memberId: {}, new role: {}, timestampMs: {}",
+        cluster.memberId(),
+        newRole,
+        new Date(cluster.timeMs()));
+
     if (newRole == Role.LEADER) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      scheduleSnaphot(controlToggle);
       // schedule(controlToggle, ToggleState.SUSPEND, Duration.ofSeconds(20));
       // schedule(controlToggle, ToggleState.RESUME, Duration.ofSeconds(25));
+
+      // Schedule timer
+      long epochTime = cluster.context().epochClock().time();
+      logger.info(
+          ">>> epochClock: {}, clusterTime: {}", new Date(epochTime), new Date(cluster.timeMs()));
+      cluster.scheduleTimer(1, cluster.timeMs() + 10000);
     }
   }
 
@@ -194,16 +205,6 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
-  }
-
-  private void scheduleSnaphot(AtomicCounter controlToggle) {
-    snapshotDisposable =
-        Flux.interval(Configurations.SNAPSHOT_PERIOD)
-            .subscribe(i -> toggle(controlToggle, ToggleState.SNAPSHOT), System.err::println);
-  }
-
-  private void schedule(AtomicCounter controlToggle, ToggleState target, Duration delay) {
-    Mono.delay(delay).subscribe(i -> toggle(controlToggle, target), System.err::println);
   }
 
   private void toggle(AtomicCounter controlToggle, ToggleState target) {
