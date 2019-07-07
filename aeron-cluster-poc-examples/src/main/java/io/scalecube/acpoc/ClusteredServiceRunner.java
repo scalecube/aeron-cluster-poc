@@ -4,7 +4,6 @@ import io.aeron.CommonContext;
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
-import io.aeron.cluster.ClusterTool;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredService;
@@ -114,25 +113,20 @@ public class ClusteredServiceRunner {
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              int memberId = Configuration.clusterMemberId();
-              logger.info("removeMember: {}", memberId);
-              File clusterDir = consensusModuleContext.clusterDir();
-              boolean removeMember = ClusterTool.removeMember(clusterDir, memberId, false);
-              logger.info("*** removeMember: {}, result: {}", memberId, removeMember);
+              //              int memberId = Configuration.clusterMemberId();
+              //              logger.info("removeMember: {}", memberId);
+              //              File clusterDir = consensusModuleContext.clusterDir();
+              //              boolean removeMember = ClusterTool.removeMember(clusterDir, memberId,
+              // false);
+              //              logger.info("*** removeMember: {}, result: {}", memberId,
+              // removeMember);
 
               CloseHelper.quietClose(clusteredServiceContainer);
               CloseHelper.quietClose(consensusModule);
               CloseHelper.quietClose(archive);
 
-              logger.info("requestDriverTermination: {}", mediaDriverContext.aeronDirectoryName());
-              boolean driverTermination =
-                  CommonContext.requestDriverTermination(
-                      mediaDriverContext.aeronDirectory(), null, 0, 0);
-              logger.info(
-                  "*** requestDriverTermination: {}, result: {}",
-                  mediaDriverContext.aeronDirectoryName(),
-                  driverTermination);
-
+              CommonContext.requestDriverTermination(
+                  mediaDriverContext.aeronDirectory(), null, 0, 0);
               CloseHelper.quietClose(mediaDriver);
               return null;
             });
