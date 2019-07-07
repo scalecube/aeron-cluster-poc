@@ -1,14 +1,13 @@
 package io.scalecube.acpoc;
 
 import io.aeron.cluster.client.AeronCluster;
+import io.aeron.driver.DefaultAllowTerminationValidator;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.ThreadingMode;
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import org.agrona.CloseHelper;
-import org.agrona.IoUtil;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +15,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Runner to start the cluster client that continuously sends requests to cluster.
- */
+/** Runner to start the cluster client that continuously sends requests to cluster. */
 public class ClusterClientRunner {
 
   public static final Logger logger = LoggerFactory.getLogger(ClusterClientRunner.class);
@@ -30,25 +27,25 @@ public class ClusterClientRunner {
    */
   public static void main(String[] args) {
     String clientId = "client-" + Utils.instanceId();
-    String clientDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", clientId).toString();
-
-    if (Configurations.CLEAN_START) {
-      IoUtil.delete(new File(clientDirName), true);
-    }
+    String clientDirName = Paths.get("target", "aeron", "cluster", clientId).toString();
 
     System.out.println("Cluster client directory: " + clientDirName);
 
     MediaDriver clientMediaDriver =
         MediaDriver.launch(
             new MediaDriver.Context()
+                .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
+                .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
+                .terminationValidator(new DefaultAllowTerminationValidator())
                 .threadingMode(ThreadingMode.SHARED)
                 .warnIfDirectoryExists(true)
+                .dirDeleteOnStart(true)
                 .aeronDirectoryName(clientDirName));
 
     AeronCluster client =
         AeronCluster.connect(
             new AeronCluster.Context()
-                .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+                .errorHandler(ex -> logger.error("Exception occurred at AeronCluster: ", ex))
                 .egressListener(new EgressListenerImpl())
                 .aeronDirectoryName(clientDirName)
                 .ingressChannel("aeron:udp"));
@@ -77,9 +74,6 @@ public class ClusterClientRunner {
               receiver.dispose();
               CloseHelper.close(client);
               CloseHelper.close(clientMediaDriver);
-              if (Configurations.CLEAN_SHUTDOWN) {
-                IoUtil.delete(new File(clientDirName), true);
-              }
               return null;
             });
     onShutdown.block();
