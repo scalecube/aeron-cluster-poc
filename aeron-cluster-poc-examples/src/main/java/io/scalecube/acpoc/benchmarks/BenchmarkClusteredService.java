@@ -19,13 +19,17 @@ public class BenchmarkClusteredService implements ClusteredService {
   private Cluster cluster;
 
   @Override
-  public void onStart(Cluster cluster) {
+  public void onStart(Cluster cluster, Image snapshotImage) {
     this.cluster = cluster;
     logger.info(
         "onStart => memberId: {}, role: {}, client-sessions: {}",
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+
+    if (snapshotImage != null) {
+      onLoadSnapshot(snapshotImage);
+    }
   }
 
   @Override
@@ -88,8 +92,7 @@ public class BenchmarkClusteredService implements ClusteredService {
         snapshotPublication.position());
   }
 
-  @Override
-  public void onLoadSnapshot(Image snapshotImage) {
+  private void onLoadSnapshot(Image snapshotImage) {
     logger.info(
         "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, "
             + "streamId: {}, position: {}",
