@@ -16,7 +16,6 @@ import io.aeron.driver.ThreadingMode;
 import io.aeron.driver.status.SystemCounterDescriptor;
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
 import org.agrona.CloseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,11 +121,8 @@ public class ClusteredServiceRunner {
               logger.info("*** removeMember: {}, result: {}", memberId, removeMember);
 
               CloseHelper.quietClose(clusteredServiceContainer);
-              // TimeUnit.SECONDS.sleep(1);
-              // CloseHelper.quietClose(consensusModule);
-              TimeUnit.SECONDS.sleep(1);
+              CloseHelper.quietClose(consensusModule);
               CloseHelper.quietClose(archive);
-              TimeUnit.SECONDS.sleep(1);
 
               logger.info("requestDriverTermination: {}", mediaDriverContext.aeronDirectoryName());
               boolean driverTermination =
