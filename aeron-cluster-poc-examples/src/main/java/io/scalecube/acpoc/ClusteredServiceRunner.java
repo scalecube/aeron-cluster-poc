@@ -5,7 +5,6 @@ import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusterTool;
-import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredService;
@@ -14,8 +13,10 @@ import io.aeron.driver.DefaultAllowTerminationValidator;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.aeron.driver.ThreadingMode;
+import io.aeron.driver.status.SystemCounterDescriptor;
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 import org.agrona.CloseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,11 @@ public class ClusteredServiceRunner {
     String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
     String nodeDirName = Paths.get("target", "aeron", "cluster", nodeId).toString();
 
+    final ClusteredServiceContainer clusteredServiceContainer;
+    final MediaDriver mediaDriver;
+    final Archive archive;
+    final ConsensusModule consensusModule;
+
     System.out.println("Cluster node directory: " + nodeDirName);
 
     String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
@@ -48,6 +54,7 @@ public class ClusteredServiceRunner {
 
     MediaDriver.Context mediaDriverContext =
         new MediaDriver.Context()
+            .spiesSimulateConnection(true)
             .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
             .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
             .terminationValidator(new DefaultAllowTerminationValidator())
@@ -77,11 +84,20 @@ public class ClusteredServiceRunner {
             .clusterDir(new File(nodeDirName, "consensus"))
             .archiveContext(aeronArchiveContext.clone());
 
-    ClusteredMediaDriver clusteredMediaDriver =
-        ClusteredMediaDriver.launch(mediaDriverContext, archiveContext, consensusModuleContext);
+    mediaDriver = MediaDriver.launch(mediaDriverContext);
+
+    archive =
+        Archive.launch(
+            archiveContext
+                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
+                .errorHandler(mediaDriverContext.errorHandler())
+                .errorCounter(
+                    mediaDriverContext.systemCounters().get(SystemCounterDescriptor.ERRORS)));
+
+    consensusModule = ConsensusModule.launch(consensusModuleContext);
 
     ClusteredService clusteredService =
-        new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
+        new ClusteredServiceImpl(mediaDriverContext.countersManager());
 
     ClusteredServiceContainer.Context clusteredServiceContext =
         new ClusteredServiceContainer.Context()
@@ -94,33 +110,34 @@ public class ClusteredServiceRunner {
             .clusterDir(new File(nodeDirName, "service"))
             .clusteredService(clusteredService);
 
-    ClusteredServiceContainer clusteredServiceContainer =
-        ClusteredServiceContainer.launch(clusteredServiceContext);
+    clusteredServiceContainer = ClusteredServiceContainer.launch(clusteredServiceContext);
 
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
               int memberId = Configuration.clusterMemberId();
-              logger.info("ClusterTool.removeMember: {}", memberId);
+              logger.info("removeMember: {}", memberId);
               File clusterDir = consensusModuleContext.clusterDir();
               boolean removeMember = ClusterTool.removeMember(clusterDir, memberId, false);
-              logger.info("ClusterTool.removeMember: {}, result: {}", memberId, removeMember);
+              logger.info("*** removeMember: {}, result: {}", memberId, removeMember);
 
-              CloseHelper.close(clusteredServiceContainer);
+              CloseHelper.quietClose(clusteredServiceContainer);
+              // TimeUnit.SECONDS.sleep(1);
+              // CloseHelper.quietClose(consensusModule);
+              TimeUnit.SECONDS.sleep(1);
+              CloseHelper.quietClose(archive);
+              TimeUnit.SECONDS.sleep(1);
 
-              logger.info(
-                  "CommonContext requestDriverTermination: {}",
-                  mediaDriverContext.aeronDirectoryName());
+              logger.info("requestDriverTermination: {}", mediaDriverContext.aeronDirectoryName());
               boolean driverTermination =
                   CommonContext.requestDriverTermination(
                       mediaDriverContext.aeronDirectory(), null, 0, 0);
-
               logger.info(
-                  "CommonContext requestDriverTermination: {}, result: {}",
+                  "*** requestDriverTermination: {}, result: {}",
                   mediaDriverContext.aeronDirectoryName(),
                   driverTermination);
 
-              CloseHelper.close(clusteredMediaDriver);
+              CloseHelper.quietClose(mediaDriver);
               return null;
             });
     onShutdown.block();
