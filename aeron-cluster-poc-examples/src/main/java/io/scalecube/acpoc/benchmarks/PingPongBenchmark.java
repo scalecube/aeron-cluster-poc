@@ -2,11 +2,13 @@ package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
-import io.aeron.driver.DefaultAllowTerminationValidator;
 import io.aeron.driver.MediaDriver;
+import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
 import io.aeron.logbuffer.Header;
+import io.scalecube.acpoc.Configurations;
 import io.scalecube.acpoc.Utils;
+import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +17,7 @@ import org.agrona.BitUtil;
 import org.agrona.BufferUtil;
 import org.agrona.CloseHelper;
 import org.agrona.DirectBuffer;
+import org.agrona.IoUtil;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.YieldingIdleStrategy;
@@ -48,19 +51,19 @@ public class PingPongBenchmark {
    */
   public static void main(String[] args) throws InterruptedException {
     String clientId = "client-benchmark" + Utils.instanceId();
-    String clientDirName = Paths.get("target", "aeron", "cluster", clientId).toString();
+    String clientDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", clientId).toString();
+
+    if (Configurations.CLEAN_START) {
+      IoUtil.delete(new File(clientDirName), true);
+    }
 
     System.out.println("Cluster client directory: " + clientDirName);
 
     MediaDriver clientMediaDriver =
         MediaDriver.launch(
-            new MediaDriver.Context()
-                .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
-                .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
-                .terminationValidator(new DefaultAllowTerminationValidator())
+            new Context()
                 .threadingMode(ThreadingMode.SHARED)
                 .warnIfDirectoryExists(true)
-                .dirDeleteOnStart(true)
                 .aeronDirectoryName(clientDirName));
 
     EgressListener egressListener =
@@ -70,7 +73,7 @@ public class PingPongBenchmark {
     AeronCluster client =
         AeronCluster.connect(
             new AeronCluster.Context()
-                .errorHandler(ex -> logger.error("Exception occurred at AeronCluster: ", ex))
+                .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
                 .egressListener(egressListener)
                 .aeronDirectoryName(clientDirName)
                 .ingressChannel("aeron:udp"));
@@ -80,6 +83,9 @@ public class PingPongBenchmark {
             () -> {
               CloseHelper.close(client);
               CloseHelper.close(clientMediaDriver);
+              if (Configurations.CLEAN_SHUTDOWN) {
+                IoUtil.delete(new File(clientDirName), true);
+              }
               return null;
             });
     onShutdown.subscribe();
