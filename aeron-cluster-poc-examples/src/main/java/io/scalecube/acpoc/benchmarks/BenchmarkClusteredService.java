@@ -26,7 +26,6 @@ public class BenchmarkClusteredService implements ClusteredService {
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
-
     if (snapshotImage != null) {
       onLoadSnapshot(snapshotImage);
     }
