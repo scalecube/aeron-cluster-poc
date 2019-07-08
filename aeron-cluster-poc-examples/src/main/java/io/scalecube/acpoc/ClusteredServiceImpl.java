@@ -24,6 +24,10 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceImpl.class);
 
+  public static final int TIMER_INTERVAL = 3000;
+  public static final String TIMER_COMMAND = "SCHEDULE_TIMER";
+  public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
+
   private final CountersManager countersManager;
 
   private Cluster cluster;
@@ -37,13 +41,16 @@ public class ClusteredServiceImpl implements ClusteredService {
   }
 
   @Override
-  public void onStart(Cluster cluster) {
+  public void onStart(Cluster cluster, Image snapshotImage) {
     this.cluster = cluster;
     logger.info(
         "onStart => memberId: {}, role: {}, client-sessions: {}",
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+    if (snapshotImage != null) {
+      onLoadSnapshot(snapshotImage);
+    }
   }
 
   @Override
@@ -89,25 +96,33 @@ public class ClusteredServiceImpl implements ClusteredService {
             + "sessionId: {}, position: {}, content: '{}'",
         new Date(timestampMs),
         cluster.memberId(),
-        session.id(),
+        session,
         header.position(),
         message);
 
     // Updated service state
     int value = serviceCounter.incrementAndGet();
 
-    if ("snapshot".equalsIgnoreCase(message)) {
+    if (TIMER_COMMAND.equalsIgnoreCase(message)) {
+      if (cluster.role() == Role.LEADER) {
+        scheduleTimer();
+      }
+    }
+
+    if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
       AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
       toggle(controlToggle, ToggleState.SNAPSHOT);
     }
 
-    if (cluster.role() == Role.LEADER) {
-      // Send response back
-      String response = message + ", ClusteredService.serviceCounter(value=" + value + ")";
-      UnsafeBuffer buffer1 = new UnsafeBuffer(response.getBytes());
-      long l = session.offer(buffer1, 0, buffer1.capacity());
-      if (l > 0) {
-        logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+    if (session != null) {
+      if (cluster.role() == Role.LEADER) {
+        // Send response back
+        String response = message + ", ClusteredService.serviceCounter(value=" + value + ")";
+        UnsafeBuffer buffer1 = new UnsafeBuffer(response.getBytes());
+        long l = session.offer(buffer1, 0, buffer1.capacity());
+        if (l > 0) {
+          logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+        }
       }
     }
   }
@@ -121,7 +136,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         correlationId);
 
     if (cluster.role() == Role.LEADER) {
-      cluster.scheduleTimer(1, cluster.timeMs() + 10000);
+      scheduleTimer();
     }
   }
 
@@ -148,8 +163,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         offer);
   }
 
-  @Override
-  public void onLoadSnapshot(Image snapshotImage) {
+  private void onLoadSnapshot(Image snapshotImage) {
     logger.info(
         "onLoadSnapshot => image: memberId: {}, sessionId: {}, channel: {}, "
             + "streamId: {}, position: {}",
@@ -187,14 +201,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         new Date(cluster.timeMs()));
 
     if (newRole == Role.LEADER) {
-      // schedule(controlToggle, ToggleState.SUSPEND, Duration.ofSeconds(20));
-      // schedule(controlToggle, ToggleState.RESUME, Duration.ofSeconds(25));
-
-      // Schedule timer
-      long epochTime = cluster.context().epochClock().time();
-      logger.info(
-          ">>> epochClock: {}, clusterTime: {}", new Date(epochTime), new Date(cluster.timeMs()));
-      cluster.scheduleTimer(1, cluster.timeMs() + 10000);
+      sendTimerCommand();
     }
   }
 
@@ -216,5 +223,22 @@ public class ClusteredServiceImpl implements ClusteredService {
         result ? "succesfuly" : "unsuccesfuly",
         oldToggleState,
         newToggleState);
+  }
+
+  private void sendTimerCommand() {
+    UnsafeBuffer buffer1 = new UnsafeBuffer(TIMER_COMMAND.getBytes());
+    long l = cluster.offer(buffer1, 0, buffer1.capacity());
+    if (l > 0) {
+      logger.info("TimerCommand: send result={}", l);
+    }
+  }
+
+  private void scheduleTimer() {
+    long deadlineMs = cluster.timeMs() + TIMER_INTERVAL;
+    long correlationId = cluster.timeMs();
+    boolean scheduleTimer = cluster.scheduleTimer(correlationId, deadlineMs);
+    if (scheduleTimer) {
+      logger.info("Timer ({}) scheduled at {}", correlationId, new Date(deadlineMs));
+    }
   }
 }
