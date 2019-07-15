@@ -2,6 +2,7 @@ package io.scalecube.acpoc;
 
 import io.aeron.Aeron;
 import io.aeron.Aeron.Context;
+import io.aeron.ChannelUri;
 import io.aeron.CommonContext;
 import io.aeron.ConcurrentPublication;
 import io.aeron.Subscription;
@@ -61,7 +62,8 @@ public class ArchiveTest {
     startNewRecording(aeronArchive, aeron);
 
     ConcurrentPublication replayPublication =
-        aeron.addPublication(CommonContext.IPC_CHANNEL, REPLAY_STREAM_ID);
+        aeron.addPublication(
+            ChannelUri.addSessionId(CommonContext.IPC_CHANNEL, 42), REPLAY_STREAM_ID);
 
     String replayChannel = startNewReplay(aeronArchive, replayPublication);
 
@@ -114,7 +116,8 @@ public class ArchiveTest {
 
   private static void startNewRecording(AeronArchive aeronArchive, Aeron aeron) {
     ConcurrentPublication recordingPublication =
-        aeron.addPublication(CommonContext.IPC_CHANNEL, RECORDING_STREAM_ID);
+        aeron.addPublication(
+            ChannelUri.addSessionId(CommonContext.IPC_CHANNEL, 100500), RECORDING_STREAM_ID);
     long recording =
         aeronArchive.startRecording(
             recordingPublication.channel(), RECORDING_STREAM_ID, SourceLocation.LOCAL);
