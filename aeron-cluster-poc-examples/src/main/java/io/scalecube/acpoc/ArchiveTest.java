@@ -59,14 +59,21 @@ public class ArchiveTest {
                 .errorHandler(ex -> LOGGER.error("Aeron error: ", ex)));
 
     startNewRecording(aeronArchive, aeron);
-    String replayChannel = startNewReplay(aeronArchive, aeron);
+
+    ConcurrentPublication replayPublication =
+        aeron.addPublication(CommonContext.IPC_CHANNEL, REPLAY_STREAM_ID);
+
+    String replayChannel = startNewReplay(aeronArchive, replayPublication);
 
     Subscription replaySubscription = aeron.addSubscription(replayChannel, REPLAY_STREAM_ID);
     LOGGER.info("created replaySubscription: {}, connecting ...", replaySubscription);
     do {
       LockSupport.parkNanos(1);
     } while (!replaySubscription.isConnected());
-    LOGGER.info("replaySubscription connected: " + replaySubscription);
+    LOGGER.info(
+        "replaySubscription connected: {}, images: {}",
+        replaySubscription,
+        replaySubscription.images());
 
     CountDownLatch latch = new CountDownLatch(2);
 
@@ -76,7 +83,11 @@ public class ArchiveTest {
               (buffer, offset, length, header) -> {
                 byte[] bytes = new byte[length];
                 buffer.getBytes(offset, bytes);
-                LOGGER.info("### (buffer, offset, length, header) -> {}", new String(bytes));
+                LOGGER.info(
+                    "### (buffer, offset, length, header) -> '{}' on sessionId: {}, streamId: {}",
+                    new String(bytes),
+                    header.sessionId(),
+                    header.streamId());
                 latch.countDown();
               },
               100500);
@@ -85,9 +96,8 @@ public class ArchiveTest {
     } while (latch.getCount() != 0);
   }
 
-  private static String startNewReplay(AeronArchive aeronArchive, Aeron aeron) {
-    ConcurrentPublication replayPublication =
-        aeron.addPublication(CommonContext.IPC_CHANNEL, REPLAY_STREAM_ID);
+  private static String startNewReplay(
+      AeronArchive aeronArchive, ConcurrentPublication replayPublication) {
     String replayChannel = replayPublication.channel();
     LOGGER.info("replayPublication: {}", replayPublication);
 
