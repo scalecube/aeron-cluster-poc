@@ -92,7 +92,9 @@ public class ArchiveTest {
               },
               100500);
 
-      LOGGER.info("replaySubscription.poll fragments received: " + poll);
+      if (poll > 0) {
+        LOGGER.info("replaySubscription.poll fragments received: " + poll);
+      }
     } while (latch.getCount() != 0);
   }
 
