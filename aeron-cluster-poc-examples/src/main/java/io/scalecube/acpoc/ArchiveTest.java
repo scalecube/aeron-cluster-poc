@@ -22,6 +22,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 import org.agrona.IoUtil;
 import org.agrona.SystemUtil;
+import org.agrona.concurrent.BackoffIdleStrategy;
+import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.CountersReader;
 import org.slf4j.Logger;
@@ -40,6 +42,8 @@ public class ArchiveTest {
   private static final String RECORDING_ENDPOINT = "localhost:43266";
   private static final String REPLAY_ENDPOINT = "localhost:43268";
   private static final String LIVE_ENDPOINT = "localhost:43267";
+
+  private static final IdleStrategy IDLE_STRATEGY = new BackoffIdleStrategy(10, 100, 1000, 1000000);
 
   private static final ChannelUriStringBuilder PUBLICATION_CHANNEL =
       new ChannelUriStringBuilder()
@@ -76,48 +80,16 @@ public class ArchiveTest {
           .sessionId(PUBLICATION_TAG)
           .endpoint(REPLAY_ENDPOINT);
 
-  //  private static final ChannelUriStringBuilder RECORDING_CHANNEL =
-  //      new ChannelUriStringBuilder().media(CommonContext.IPC_MEDIA);
-  //  private static final ChannelUriStringBuilder REPLAY_CHANNEL =
-  //      new ChannelUriStringBuilder()
-  //          .media(CommonContext.UDP_MEDIA)
-  //          .reliable(true)
-  //          .endpoint("localhost:5555");
-
   /** Archive test runner. */
   public static void main(String[] args) {
     final File archiveDir = new File(SystemUtil.tmpDirName(), "archive");
     IoUtil.delete(archiveDir, true);
-
     String aeronDirName =
         Paths.get(CommonContext.getAeronDirectoryName(), "archiveTest").toString();
     MediaDriver.Context mediaDriverContext =
         new MediaDriver.Context().aeronDirectoryName(aeronDirName);
-    try (
-    //        MediaDriver mediaDriver =
-    //            MediaDriver.launch(
-    //                new MediaDriver.Context()
-    //                    .errorHandler(ex -> LOGGER.error("MediaDriver error: ", ex))
-    //                    .publicationTermBufferLength(TERM_BUFFER_LENGTH)
-    //                    .spiesSimulateConnection(false)
-    //                    .threadingMode(ThreadingMode.SHARED)
-    //                    .aeronDirectoryName(
-    //                        Paths.get(CommonContext.getAeronDirectoryName(),
-    // "archiveTest").toString())
-    //                    .dirDeleteOnStart(true));
-    //        Archive archive =
-    //            Archive.launch(
-    //                new Archive.Context()
-    //                    .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
-    //                    .errorHandler(ex1 -> LOGGER.error("Archive error: ", ex1))
-    //                    .errorCounter(
-    //
-    // mediaDriver.context().systemCounters().get(SystemCounterDescriptor.ERRORS))
-    //                    .aeronDirectoryName(mediaDriver.aeronDirectoryName())
-    //                    .threadingMode(ArchiveThreadingMode.SHARED)
-    //                    .deleteArchiveOnStart(true));
 
-    ArchivingMediaDriver archivingMediaDriver =
+    try (ArchivingMediaDriver archivingMediaDriver =
             ArchivingMediaDriver.launch(
                 mediaDriverContext
                     .termBufferSparseFile(true)
@@ -155,15 +127,9 @@ public class ArchiveTest {
       String recordingChannel = RECORDING_CHANNEL.sessionId(sessionId).build();
       String subscriptionChannel = SUBSCRIPTION_CHANNEL.sessionId(sessionId).build();
 
-      aeronArchive.startRecording(recordingChannel, STREAM_ID, SourceLocation.REMOTE); // todo
+      aeronArchive.startRecording(recordingChannel, STREAM_ID, SourceLocation.REMOTE);
 
-      final CountersReader counters = aeron.countersReader();
-      final int counterId = awaitCounterId(counters, recordingPub.sessionId());
-      final long recordingId = RecordingPos.getRecordingId(counters, counterId);
-
-      System.err.println(recordingId);
-
-      publish(recordingPub);
+      send(recordingPub, "recordingPub-1");
 
       RecordingDescriptor lastRecording =
           AeronArchiveUtil.findLastRecording(aeronArchive, recordingChannel, STREAM_ID);
@@ -175,8 +141,9 @@ public class ArchiveTest {
 
       Publication replyPub = aeron.addPublication(REPLAY_CHANNEL.build(), STREAM_ID);
 
-//      Subscription replaySubscription = aeron.addSubscription(REPLAY_CHANNEL.build(), STREAM_ID);
-      Subscription replaySubscription = aeron.addSubscription(replyPub.channel(), STREAM_ID);
+      send(replyPub, "replyPub-1");
+
+      Subscription replaySubscription = aeron.addSubscription(subscriptionChannel, STREAM_ID);
       LOGGER.info("created replaySubscription: {}, connecting ...", replaySubscription);
       do {
         LockSupport.parkNanos(1);
@@ -210,10 +177,16 @@ public class ArchiveTest {
     }
   }
 
-  private static void publish(Publication publication) {
-    long offer1 = publication.offer(new UnsafeBuffer(("hello world 1").getBytes()));
-    long offer2 = publication.offer(new UnsafeBuffer(("hello world 2").getBytes()));
-    LOGGER.info("publish: recording offer1: {}, offer2: {}", offer1, offer2);
+  private static void send(Publication publication, String msg) {
+    while (true) {
+      long result = publication.offer(new UnsafeBuffer(msg.getBytes()));
+      if (result > 0) {
+        break;
+      }
+      LOGGER.warn("couldn't send by [{}] from [{}]: {}", result, publication.channel(), msg);
+      IDLE_STRATEGY.idle();
+    }
+    LOGGER.info("sent from {}: {}", publication.channel(), msg);
   }
 
   private static int awaitCounterId(final CountersReader counters, final int sessionId) {
