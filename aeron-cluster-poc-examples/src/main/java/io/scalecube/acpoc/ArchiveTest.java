@@ -31,74 +31,72 @@ public class ArchiveTest {
     String aeronDirectoryName =
         Paths.get(CommonContext.getAeronDirectoryName(), "archiveTest").toString();
 
-    MediaDriver mediaDriver =
-        MediaDriver.launch(
-            new MediaDriver.Context()
-                .errorHandler(ex -> LOGGER.error("MediaDriver error: ", ex))
-                .dirDeleteOnStart(true)
-                .threadingMode(ThreadingMode.SHARED_NETWORK)
-                .aeronDirectoryName(aeronDirectoryName));
+    try (MediaDriver mediaDriver =
+            MediaDriver.launch(
+                new MediaDriver.Context()
+                    .errorHandler(ex -> LOGGER.error("MediaDriver error: ", ex))
+                    .dirDeleteOnStart(true)
+                    .threadingMode(ThreadingMode.SHARED_NETWORK)
+                    .aeronDirectoryName(aeronDirectoryName));
+        Archive archive =
+            Archive.launch(
+                new Archive.Context()
+                    .errorHandler(ex1 -> LOGGER.error("Archive error: ", ex1))
+                    .aeronDirectoryName(aeronDirectoryName)
+                    .threadingMode(ArchiveThreadingMode.SHARED));
+        AeronArchive aeronArchive =
+            AeronArchive.connect(
+                new AeronArchive.Context()
+                    .errorHandler(ex -> LOGGER.error("AeronArchive error: ", ex))
+                    .aeronDirectoryName(aeronDirectoryName));
+        Aeron aeron =
+            Aeron.connect(
+                new Context()
+                    .aeronDirectoryName(aeronDirectoryName)
+                    .errorHandler(ex -> LOGGER.error("Aeron error: ", ex))); ) {
 
-    Archive archive =
-        Archive.launch(
-            new Archive.Context()
-                .errorHandler(ex1 -> LOGGER.error("Archive error: ", ex1))
-                .aeronDirectoryName(aeronDirectoryName)
-                .threadingMode(ArchiveThreadingMode.SHARED));
+      LOGGER.info("archiveDir: " + archive.context().archiveDir().getAbsolutePath());
 
-    LOGGER.info("archiveDir: " + archive.context().archiveDir().getAbsolutePath());
+      startNewRecording(aeronArchive, aeron);
 
-    AeronArchive aeronArchive =
-        AeronArchive.connect(
-            new AeronArchive.Context()
-                .errorHandler(ex -> LOGGER.error("AeronArchive error: ", ex))
-                .aeronDirectoryName(aeronDirectoryName));
+      ConcurrentPublication replayPublication =
+          aeron.addPublication(
+              ChannelUri.addSessionId(CommonContext.IPC_CHANNEL, 42), REPLAY_STREAM_ID);
 
-    Aeron aeron =
-        Aeron.connect(
-            new Context()
-                .aeronDirectoryName(aeronDirectoryName)
-                .errorHandler(ex -> LOGGER.error("Aeron error: ", ex)));
+      String replayChannel = startNewReplay(aeronArchive, replayPublication);
 
-    startNewRecording(aeronArchive, aeron);
+      Subscription replaySubscription = aeron.addSubscription(replayChannel, REPLAY_STREAM_ID);
+      LOGGER.info("created replaySubscription: {}, connecting ...", replaySubscription);
+      do {
+        LockSupport.parkNanos(1);
+      } while (!replaySubscription.isConnected());
+      LOGGER.info(
+          "replaySubscription connected: {}, images: {}",
+          replaySubscription,
+          replaySubscription.images());
 
-    ConcurrentPublication replayPublication =
-        aeron.addPublication(
-            ChannelUri.addSessionId(CommonContext.IPC_CHANNEL, 42), REPLAY_STREAM_ID);
+      CountDownLatch latch = new CountDownLatch(2);
 
-    String replayChannel = startNewReplay(aeronArchive, replayPublication);
+      do {
+        int poll =
+            replaySubscription.poll(
+                (buffer, offset, length, header) -> {
+                  byte[] bytes = new byte[length];
+                  buffer.getBytes(offset, bytes);
+                  LOGGER.info(
+                      "### (buffer, offset, length, header) -> '{}' on sessionId: {}, streamId: {}",
+                      new String(bytes),
+                      header.sessionId(),
+                      header.streamId());
+                  latch.countDown();
+                },
+                100500);
 
-    Subscription replaySubscription = aeron.addSubscription(replayChannel, REPLAY_STREAM_ID);
-    LOGGER.info("created replaySubscription: {}, connecting ...", replaySubscription);
-    do {
-      LockSupport.parkNanos(1);
-    } while (!replaySubscription.isConnected());
-    LOGGER.info(
-        "replaySubscription connected: {}, images: {}",
-        replaySubscription,
-        replaySubscription.images());
-
-    CountDownLatch latch = new CountDownLatch(2);
-
-    do {
-      int poll =
-          replaySubscription.poll(
-              (buffer, offset, length, header) -> {
-                byte[] bytes = new byte[length];
-                buffer.getBytes(offset, bytes);
-                LOGGER.info(
-                    "### (buffer, offset, length, header) -> '{}' on sessionId: {}, streamId: {}",
-                    new String(bytes),
-                    header.sessionId(),
-                    header.streamId());
-                latch.countDown();
-              },
-              100500);
-
-      if (poll > 0) {
-        LOGGER.info("replaySubscription.poll fragments received: " + poll);
-      }
-    } while (latch.getCount() != 0);
+        if (poll > 0) {
+          LOGGER.info("replaySubscription.poll fragments received: " + poll);
+        }
+      } while (latch.getCount() != 0);
+    }
   }
 
   private static String startNewReplay(
