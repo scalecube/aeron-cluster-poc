@@ -1,6 +1,5 @@
 package io.scalecube.acpoc;
 
-import io.aeron.CommonContext;
 import io.aeron.archive.client.AeronArchive;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -21,16 +20,18 @@ public class AeronArchiveUtil {
    * io.aeron.archive.client.RecordingDescriptorConsumer)}.
    *
    * @param aeronArchive aeron archive
+   * @param channel channel
    * @param streamId stream id
    * @return last recording descriptor.
    */
-  public static RecordingDescriptor findLastRecording(AeronArchive aeronArchive, int streamId) {
+  public static RecordingDescriptor findLastRecording(
+      AeronArchive aeronArchive, String channel, int streamId) {
     AtomicReference<RecordingDescriptor> result = new AtomicReference<>();
     int count =
         aeronArchive.listRecordingsForUri(
             0,
             Integer.MAX_VALUE,
-            CommonContext.IPC_CHANNEL,
+            channel,
             streamId,
             (controlSessionId,
                 correlationId,
