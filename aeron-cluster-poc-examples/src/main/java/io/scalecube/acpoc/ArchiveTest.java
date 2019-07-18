@@ -26,6 +26,7 @@ public class ArchiveTest {
   public static final int RECORDING_STREAM_ID = 100;
   public static final int REPLAY_STREAM_ID = 200;
 
+  /** Archive test runner. */
   public static void main(String[] args) throws Exception {
     String aeronDirectoryName =
         Paths.get(CommonContext.getAeronDirectoryName(), "archiveTest").toString();
