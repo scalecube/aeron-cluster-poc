@@ -62,20 +62,20 @@ public class ArchiveTest {
 
     startNewRecording(aeronArchive, aeron);
 
-    int sessionId = 42;
+    final String tags = "1,2";
+    final int pubTag = 2;
+
     String publicationChannel =
         new ChannelUriStringBuilder()
-            .media("udp")
+            .tags(tags)
+            .media(CommonContext.UDP_MEDIA)
             .endpoint("localhost:4000")
-            .sessionId(sessionId)
-            .tags("" + sessionId)
-            //.isSessionIdTagged(true)
             .build();
 
     ConcurrentPublication replayPublication =
         aeron.addPublication(publicationChannel, REPLAY_STREAM_ID);
 
-    String replayChannel = startNewReplay(aeronArchive, replayPublication);
+    String replayChannel = startNewReplay(aeronArchive, replayPublication, pubTag);
 
     Subscription replaySubscription = aeron.addSubscription(replayChannel, REPLAY_STREAM_ID);
     LOGGER.info("created replaySubscription: {}, connecting ...", replaySubscription);
@@ -87,8 +87,8 @@ public class ArchiveTest {
         replaySubscription,
         replaySubscription.images());
 
-    pollSubscription(replaySubscription);
     offerReplayPublication(replayPublication);
+    pollSubscription(replaySubscription);
   }
 
   private static int poll(Subscription replaySubscription) {
@@ -106,18 +106,17 @@ public class ArchiveTest {
   }
 
   private static String startNewReplay(
-      AeronArchive aeronArchive, ConcurrentPublication replayPublication) {
+      AeronArchive aeronArchive, ConcurrentPublication replayPublication, Integer pubTag) {
     LOGGER.info("### startNewReplay: pub: {}", replayPublication);
 
     RecordingDescriptor lastRecording = findLastRecording(aeronArchive);
 
     String replayChannel =
         new ChannelUriStringBuilder()
-            .media("udp")
-            .endpoint("localhost:4000")
-            .sessionId(replayPublication.sessionId())
+            .media(CommonContext.UDP_MEDIA)
             .isSessionIdTagged(true)
-            .tags("" + replayPublication.sessionId())
+            .sessionId(pubTag)
+            .endpoint("localhost:4001")
             .build();
 
     long replaySessionId =
@@ -160,9 +159,11 @@ public class ArchiveTest {
                 } catch (InterruptedException e) {
                   e.printStackTrace();
                 }
+                long timeMillis = System.currentTimeMillis();
                 long offer =
                     replayPublication.offer(
-                        new UnsafeBuffer(("hello world from replay publication 1").getBytes()));
+                        new UnsafeBuffer(
+                            ("hello world from replay publication " + timeMillis).getBytes()));
                 LOGGER.info("replayPublication.offer: " + offer);
               }
             })
