@@ -110,8 +110,10 @@ public class ClusteredServiceImpl implements ClusteredService {
     }
 
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
-      toggle(controlToggle, ToggleState.SNAPSHOT);
+      if (cluster.role() == Role.LEADER) {
+        AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+        toggle(controlToggle, ToggleState.SNAPSHOT);
+      }
     }
 
     if (session != null) {
