@@ -2,8 +2,12 @@ package io.scalecube.acpoc;
 
 import io.aeron.Image;
 import io.aeron.Publication;
+import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusterControl;
 import io.aeron.cluster.ClusterControl.ToggleState;
+import io.aeron.cluster.RecordingLog;
+import io.aeron.cluster.RecordingLog.Entry;
+import io.aeron.cluster.RecordingLog.RecoveryPlan;
 import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
 import io.aeron.cluster.service.Cluster;
@@ -11,8 +15,11 @@ import io.aeron.cluster.service.Cluster.Role;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
@@ -43,6 +50,30 @@ public class ClusteredServiceImpl implements ClusteredService {
   @Override
   public void onStart(Cluster cluster, Image snapshotImage) {
     this.cluster = cluster;
+
+    String consensusPath =
+        "/home/artemvysochyn/Workspace/aeron-cluster-poc/target/aeron/cluster/node-0-n0/consensus";
+    File logFile = Paths.get(consensusPath).toFile();
+    if (!logFile.exists()) {
+      throw new IllegalStateException("logFile parent dir doesn't exist");
+    }
+
+    RecordingLog recordingLog = new RecordingLog(logFile);
+
+    logger.info(
+        "recordingLog: "
+            + recordingLog.entries().stream()
+                .map(Entry::toString)
+                .collect(Collectors.joining("\n", "[", "]")));
+
+    AeronArchive.Context context =
+        new AeronArchive.Context().aeronDirectoryName(cluster.context().aeronDirectoryName());
+
+    AeronArchive aeronArchive = AeronArchive.connect(context);
+    RecoveryPlan recoveryPlan = recordingLog.createRecoveryPlan(aeronArchive, 1);
+
+    logger.info("recoveryPlan: " + recoveryPlan);
+
     logger.info(
         "onStart => memberId: {}, role: {}, client-sessions: {}",
         cluster.memberId(),
