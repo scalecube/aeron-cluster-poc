@@ -198,7 +198,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         "onRoleChange => memberId: {}, new role: {}, timestampMs: {}",
         cluster.memberId(),
         newRole,
-        new Date(cluster.timeMs()));
+        new Date(cluster.time()));
 
     if (newRole == Role.LEADER) {
       sendTimerCommand();
@@ -234,8 +234,8 @@ public class ClusteredServiceImpl implements ClusteredService {
   }
 
   private void scheduleTimer() {
-    long deadlineMs = cluster.timeMs() + TIMER_INTERVAL;
-    long correlationId = cluster.timeMs();
+    long deadlineMs = cluster.time() + TIMER_INTERVAL;
+    long correlationId = cluster.time();
     boolean scheduleTimer = cluster.scheduleTimer(correlationId, deadlineMs);
     if (scheduleTimer) {
       logger.info("Timer ({}) scheduled at {}", correlationId, new Date(deadlineMs));
