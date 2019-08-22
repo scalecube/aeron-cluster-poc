@@ -104,9 +104,7 @@ public class ClusteredServiceImpl implements ClusteredService {
     int value = serviceCounter.incrementAndGet();
 
     if (TIMER_COMMAND.equalsIgnoreCase(message)) {
-      if (cluster.role() == Role.LEADER) {
-        scheduleTimer();
-      }
+      scheduleTimer();
     }
 
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
@@ -135,9 +133,7 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         correlationId);
 
-    if (cluster.role() == Role.LEADER) {
-      scheduleTimer();
-    }
+    scheduleTimer();
   }
 
   @Override
@@ -235,7 +231,7 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   private void scheduleTimer() {
     long deadlineMs = cluster.time() + TIMER_INTERVAL;
-    long correlationId = cluster.time();
+    long correlationId = 1;
     boolean scheduleTimer = cluster.scheduleTimer(correlationId, deadlineMs);
     if (scheduleTimer) {
       logger.info("Timer ({}) scheduled at {}", correlationId, new Date(deadlineMs));
