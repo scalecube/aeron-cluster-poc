@@ -27,7 +27,7 @@ public class ClusteredServiceImpl implements ClusteredService {
   public static final int TIMER_1_INTERVAL = 3000;
   public static final int TIMER_2_INTERVAL = 5000;
   public static final String TIMER_1_COMMAND = "SCHEDULE_TIMER_1";
-  public static final String TIMER_2_COMMAND = "SCHEDULE_TIMER_1";
+  public static final String TIMER_2_COMMAND = "SCHEDULE_TIMER_2";
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
 
   private final CountersManager countersManager;
@@ -236,6 +236,12 @@ public class ClusteredServiceImpl implements ClusteredService {
     long l = cluster.offer(buffer1, 0, buffer1.capacity());
     if (l > 0) {
       logger.info("Timer1Command: send result={}", l);
+    }
+
+    UnsafeBuffer buffer2 = new UnsafeBuffer(TIMER_2_COMMAND.getBytes());
+    long l2 = cluster.offer(buffer2, 0, buffer2.capacity());
+    if (l2 > 0) {
+      logger.info("Timer2Command: send result={}", l2);
     }
   }
 
