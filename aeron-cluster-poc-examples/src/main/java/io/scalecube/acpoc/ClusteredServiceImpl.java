@@ -24,8 +24,10 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceImpl.class);
 
-  public static final int TIMER_INTERVAL = 3000;
-  public static final String TIMER_COMMAND = "SCHEDULE_TIMER";
+  public static final int TIMER_1_INTERVAL = 3000;
+  public static final int TIMER_2_INTERVAL = 5000;
+  public static final String TIMER_1_COMMAND = "SCHEDULE_TIMER_1";
+  public static final String TIMER_2_COMMAND = "SCHEDULE_TIMER_2";
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
 
   private final CountersManager countersManager;
@@ -103,10 +105,11 @@ public class ClusteredServiceImpl implements ClusteredService {
     // Updated service state
     int value = serviceCounter.incrementAndGet();
 
-    if (TIMER_COMMAND.equalsIgnoreCase(message)) {
-      if (cluster.role() == Role.LEADER) {
-        scheduleTimer();
-      }
+    if (TIMER_1_COMMAND.equalsIgnoreCase(message)) {
+      scheduleTimer(1, cluster.time() + TIMER_1_INTERVAL);
+    }
+    if (TIMER_2_COMMAND.equalsIgnoreCase(message)) {
+      scheduleTimer(2, cluster.time() + TIMER_2_INTERVAL);
     }
 
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
@@ -135,8 +138,11 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         correlationId);
 
-    if (cluster.role() == Role.LEADER) {
-      scheduleTimer();
+    if (correlationId == 1) {
+      scheduleTimer(correlationId, cluster.time() + TIMER_1_INTERVAL);
+    }
+    if (correlationId == 2) {
+      scheduleTimer(correlationId, cluster.time() + TIMER_2_INTERVAL);
     }
   }
 
@@ -226,16 +232,20 @@ public class ClusteredServiceImpl implements ClusteredService {
   }
 
   private void sendTimerCommand() {
-    UnsafeBuffer buffer1 = new UnsafeBuffer(TIMER_COMMAND.getBytes());
+    UnsafeBuffer buffer1 = new UnsafeBuffer(TIMER_1_COMMAND.getBytes());
     long l = cluster.offer(buffer1, 0, buffer1.capacity());
     if (l > 0) {
-      logger.info("TimerCommand: send result={}", l);
+      logger.info("Timer1Command: send result={}", l);
+    }
+
+    UnsafeBuffer buffer2 = new UnsafeBuffer(TIMER_2_COMMAND.getBytes());
+    long l2 = cluster.offer(buffer2, 0, buffer2.capacity());
+    if (l2 > 0) {
+      logger.info("Timer2Command: send result={}", l2);
     }
   }
 
-  private void scheduleTimer() {
-    long deadlineMs = cluster.time() + TIMER_INTERVAL;
-    long correlationId = cluster.time();
+  private void scheduleTimer(long correlationId, long deadlineMs) {
     boolean scheduleTimer = cluster.scheduleTimer(correlationId, deadlineMs);
     if (scheduleTimer) {
       logger.info("Timer ({}) scheduled at {}", correlationId, new Date(deadlineMs));
