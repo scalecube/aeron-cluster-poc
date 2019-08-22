@@ -237,12 +237,6 @@ public class ClusteredServiceImpl implements ClusteredService {
     if (l > 0) {
       logger.info("Timer1Command: send result={}", l);
     }
-
-    UnsafeBuffer buffer2 = new UnsafeBuffer(TIMER_1_COMMAND.getBytes());
-    long l2 = cluster.offer(buffer2, 0, buffer2.capacity());
-    if (l2 > 0) {
-      logger.info("Timer2Command: send result={}", l);
-    }
   }
 
   private void scheduleTimer(long correlationId, long deadlineMs) {
