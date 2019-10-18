@@ -8,6 +8,8 @@ JAR_FILE=$(ls target |grep jar)
 echo $JAR_FILE
 
 java \
-  -cp target/${JAR_FILE}:target/lib/* \
-  -Daeron.cluster.member.endpoints="0=mpp-vysochyn:20110,1=mpp-habryiel:20111" \
-  ${JVM_OPTS} io.scalecube.acpoc.InteractiveClient
+-cp target/${JAR_FILE}:target/lib/* \
+-Daeron.cluster.member.endpoints="0=mpp-vysochyn:20110,1=mpp-habryiel:20111" \
+-Dnetworkaddress.cache.ttl=0 \
+-Dnetworkaddress.cache.negative.ttl=0 \
+${JVM_OPTS} io.scalecube.acpoc.InteractiveClient
