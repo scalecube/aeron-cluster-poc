@@ -16,7 +16,9 @@ java \
 -Daeron.archive.recording.events.channel="aeron:udp?control-mode=dynamic|control=mpp-vysochyn:8030" \
 -Daeron.archive.local.control.channel="aeron:ipc?term-length=64k" \
 -Daeron.cluster.member.id="0" \
--Daeron.cluster.members="0,mpp-vysochyn:20110,mpp-vysochyn:20220,mpp-vysochyn:20330,mpp-vysochyn:20440,mpp-vysochyn:8010|1,mpp-habryiel:20111,mpp-habryiel:20221,mpp-habryiel:20331,mpp-habryiel:20441,mpp-habryiel:8011" \
+-Daeron.cluster.members="0,mpp-vysochyn:20110,mpp-vysochyn:20220,mpp-vysochyn:20330,mpp-vysochyn:20440,mpp-vysochyn:8010|\
+1,mpp-habryiel:20111,mpp-habryiel:20221,mpp-habryiel:20331,mpp-habryiel:20441,mpp-habryiel:8011|\
+1,om2-savchuk:20112,om2-savchuk:20222,om2-savchuk:20332,om2-savchuk:20442,om2-savchuk:8012" \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=mpp-vysochyn:20550" \
 -Dio.scalecube.acpoc.instanceId=n0 \
