@@ -5,14 +5,17 @@ import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ConsensusModule;
+import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
+import org.agrona.CloseHelper;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.CompositeAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 public class AeronInvokerTest {
 
@@ -80,6 +83,24 @@ public class AeronInvokerTest {
     // consensusModule
     ConsensusModule consensusModule = ConsensusModule.launch(consensusModuleContext);
 
-    Thread.currentThread().join();
+    ClusteredServiceContainer.Context clusteredServiceContext =
+        new ClusteredServiceContainer.Context()
+            .errorHandler(
+                ex -> LOGGER.error("Exception occurred on ClusteredServiceContainer: ", ex))
+            .aeronDirectoryName(aeronDirectoryName)
+            .archiveContext(aeronArchiveContext.clone())
+            .clusteredService(new ClusteredServiceImpl(mediaDriver.context().countersManager()));
+
+    ClusteredServiceContainer clusteredServiceContainer =
+        ClusteredServiceContainer.launch(clusteredServiceContext);
+
+    Mono<Void> onShutdown =
+        Utils.onShutdown(
+            () -> {
+              CloseHelper.close(consensusModule);
+              CloseHelper.close(clusteredServiceContainer);
+              return null;
+            });
+    onShutdown.block();
   }
 }
