@@ -12,9 +12,15 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
 import org.agrona.concurrent.AgentInvoker;
+import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.BusySpinIdleStrategy;
+import org.agrona.concurrent.CompositeAgent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AeronInvokerTest {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AeronInvokerTest.class);
 
   public static void main(String[] args) throws InterruptedException {
     // Media
@@ -51,7 +57,7 @@ public class AeronInvokerTest {
             new Archive.Context()
                 .aeron(aeron)
                 .errorCounter(archiveErrors)
-                .errorHandler(System.err::println)
+                .errorHandler(ex -> LOGGER.error("Exception occurred on Archive: ", ex))
                 .aeronDirectoryName(aeronDirectoryName)
                 .controlChannel(aeronArchiveContext.controlRequestChannel())
                 .controlStreamId(aeronArchiveContext.controlRequestStreamId())
@@ -69,9 +75,17 @@ public class AeronInvokerTest {
         new ConsensusModule.Context()
             .aeron(aeron)
             .errorCounter(clusterErrors)
-            .errorHandler(System.err::println)
+            .errorHandler(ex -> LOGGER.error("Exception occurred on ConsensusModule: ", ex))
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone());
+
+    AgentRunner agentRunner =
+        new AgentRunner(
+            new BusySpinIdleStrategy(),
+            ex -> LOGGER.error("Exception occurred on AgentRunner: ", ex),
+            null,
+            new CompositeAgent(mediaDriverInvoker.agent(), archiveInvoker.agent()));
+    AgentRunner.startOnThread(agentRunner);
 
     // consensusModuleContext
     ConsensusModule consensusModule = ConsensusModule.launch(consensusModuleContext);
