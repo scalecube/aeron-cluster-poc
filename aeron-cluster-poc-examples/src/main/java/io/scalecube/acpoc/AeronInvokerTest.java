@@ -11,7 +11,8 @@ import io.aeron.cluster.ConsensusModule;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.driver.ThreadingMode;
-import org.agrona.concurrent.AgentInvoker;
+import java.lang.reflect.Constructor;
+import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentRunner;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.CompositeAgent;
@@ -22,7 +23,7 @@ public class AeronInvokerTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AeronInvokerTest.class);
 
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws Exception {
     // Media
     MediaDriver mediaDriver =
         MediaDriver.launch(
@@ -33,14 +34,11 @@ public class AeronInvokerTest {
 
     String aeronDirectoryName = mediaDriver.context().aeronDirectoryName();
 
-    // mediaDriverInvoker
-    AgentInvoker mediaDriverInvoker = mediaDriver.sharedAgentInvoker();
-
     // Aeron
     Aeron aeron =
         Aeron.connect(
             new Aeron.Context()
-                .driverAgentInvoker(mediaDriverInvoker)
+                .driverAgentInvoker(mediaDriver.sharedAgentInvoker())
                 .useConductorAgentInvoker(true)
                 .idleStrategy(new BusySpinIdleStrategy()));
 
@@ -64,11 +62,10 @@ public class AeronInvokerTest {
                 .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
                 .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .mediaDriverAgentInvoker(mediaDriverInvoker)
+                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
                 .deleteArchiveOnStart(true));
 
     // archiveInvoker
-    AgentInvoker archiveInvoker = archive.invoker();
 
     // consensusModuleContext
     ConsensusModule.Context consensusModuleContext =
@@ -79,16 +76,23 @@ public class AeronInvokerTest {
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone());
 
+    consensusModuleContext.conclude();
+
+    Class<?> aclass = Class.forName("io.aeron.cluster.ConsensusModuleAgent");
+    Constructor<?> constructor = aclass.getDeclaredConstructor(ConsensusModule.Context.class);
+    constructor.setAccessible(true);
+    Agent consensusModuleAgent = (Agent) constructor.newInstance(consensusModuleContext);
+
     AgentRunner agentRunner =
         new AgentRunner(
             new BusySpinIdleStrategy(),
             ex -> LOGGER.error("Exception occurred on AgentRunner: ", ex),
             null,
-            new CompositeAgent(mediaDriverInvoker.agent(), archiveInvoker.agent()));
+            new CompositeAgent(
+                mediaDriver.sharedAgentInvoker().agent(),
+                archive.invoker().agent(),
+                consensusModuleAgent));
     AgentRunner.startOnThread(agentRunner);
-
-    // consensusModuleContext
-    ConsensusModule consensusModule = ConsensusModule.launch(consensusModuleContext);
 
     Thread.currentThread().join();
   }
