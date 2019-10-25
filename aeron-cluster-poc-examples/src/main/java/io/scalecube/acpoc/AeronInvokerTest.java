@@ -26,6 +26,7 @@ public class AeronInvokerTest {
     MediaDriver mediaDriver =
         MediaDriver.launch(
             new Context()
+                .printConfigurationOnStart(true)
                 .threadingMode(ThreadingMode.INVOKER)
                 .spiesSimulateConnection(true)
                 .dirDeleteOnStart(true));
@@ -36,7 +37,6 @@ public class AeronInvokerTest {
     Aeron aeron =
         Aeron.connect(
             new Aeron.Context()
-                .driverAgentInvoker(mediaDriver.sharedAgentInvoker())
                 .useConductorAgentInvoker(true)
                 .idleStrategy(new BusySpinIdleStrategy()));
 
@@ -60,16 +60,17 @@ public class AeronInvokerTest {
                 .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
                 .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
+                .mediaDriverAgentInvoker(aeron.conductorAgentInvoker())
                 .deleteArchiveOnStart(true));
 
-    AgentRunner.startOnThread(
+    AgentRunner agentRunner =
         new AgentRunner(
             new BusySpinIdleStrategy(),
             ex -> LOGGER.error("Exception occurred on AgentRunner: ", ex),
             null,
             new CompositeAgent(
-                mediaDriver.sharedAgentInvoker().agent(), archive.invoker().agent())));
+                aeron.conductorAgentInvoker().agent(), archive.invoker().agent()));
+    AgentRunner.startOnThread(agentRunner);
 
     // consensusModuleContext
     ConsensusModule.Context consensusModuleContext =
@@ -99,6 +100,7 @@ public class AeronInvokerTest {
             () -> {
               CloseHelper.close(consensusModule);
               CloseHelper.close(clusteredServiceContainer);
+              CloseHelper.close(agentRunner);
               return null;
             });
     onShutdown.block();
