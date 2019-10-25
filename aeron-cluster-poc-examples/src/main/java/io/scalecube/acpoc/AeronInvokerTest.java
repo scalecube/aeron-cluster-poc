@@ -60,16 +60,14 @@ public class AeronInvokerTest {
                 .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
                 .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
-                .deleteArchiveOnStart(true));
+                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker()));
 
     AgentRunner agentRunner =
         new AgentRunner(
             new BusySpinIdleStrategy(),
             ex -> LOGGER.error("Exception occurred on AgentRunner: ", ex),
             null,
-            new CompositeAgent(
-                aeron.conductorAgentInvoker().agent(), archive.invoker().agent()));
+            new CompositeAgent(aeron.conductorAgentInvoker().agent(), archive.invoker().agent()));
     AgentRunner.startOnThread(agentRunner);
 
     // consensusModuleContext
