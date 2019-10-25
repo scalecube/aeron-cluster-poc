@@ -60,7 +60,7 @@ public class AeronInvokerTest {
                 .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
                 .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
                 .threadingMode(ArchiveThreadingMode.INVOKER)
-                .mediaDriverAgentInvoker(aeron.conductorAgentInvoker())
+                .mediaDriverAgentInvoker(mediaDriver.sharedAgentInvoker())
                 .deleteArchiveOnStart(true));
 
     AgentRunner agentRunner =
