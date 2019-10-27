@@ -62,8 +62,8 @@ public class ClusterClientPing {
     MediaDriver clientMediaDriver =
         MediaDriver.launch(
             new Context()
-                .threadingMode(ThreadingMode.SHARED)
                 .warnIfDirectoryExists(true)
+                .dirDeleteOnStart(true)
                 .aeronDirectoryName(clientDirName));
 
     EgressListener egressListener =

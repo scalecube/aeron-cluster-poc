@@ -53,19 +53,19 @@ public class ClusteredServiceRunner {
         new Context()
             .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
-            .threadingMode(ThreadingMode.SHARED)
+            .dirDeleteOnStart(true)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
     Archive.Context archiveContext =
         new Archive.Context()
             .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
+            .deleteArchiveOnStart(true)
             .aeronDirectoryName(aeronDirectoryName)
             .archiveDir(new File(nodeDirName, "archive"))
             .controlChannel(aeronArchiveContext.controlRequestChannel())
             .controlStreamId(aeronArchiveContext.controlRequestStreamId())
             .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
-            .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
-            .threadingMode(ArchiveThreadingMode.SHARED);
+            .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel());
 
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
