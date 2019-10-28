@@ -1,23 +1,19 @@
 package io.scalecube.acpoc.benchmarks;
 
 import io.aeron.archive.Archive;
-import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.driver.MediaDriver.Context;
+import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
-import io.aeron.driver.ThreadingMode;
 import io.scalecube.acpoc.Configurations;
 import io.scalecube.acpoc.Utils;
 import java.io.File;
 import java.nio.file.Paths;
 import org.agrona.CloseHelper;
 import org.agrona.IoUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
@@ -25,8 +21,6 @@ import reactor.core.publisher.Mono;
  * passed via VM args.
  */
 public class ClusteredServiceRunner {
-
-  private static final Logger logger = LoggerFactory.getLogger(ClusteredServiceRunner.class);
 
   /**
    * Main function runner.
@@ -49,11 +43,14 @@ public class ClusteredServiceRunner {
     AeronArchive.Context aeronArchiveContext =
         new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
 
-    Context mediaDriverContest =
-        new Context()
-            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+    MediaDriver.Context mediaDriverContest =
+        new MediaDriver.Context()
             .aeronDirectoryName(aeronDirectoryName)
+            .warnIfDirectoryExists(true)
             .dirDeleteOnStart(true)
+            .dirDeleteOnShutdown(true)
+            .printConfigurationOnStart(true)
+            .errorHandler(Throwable::printStackTrace)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
     Archive.Context archiveContext =
@@ -69,7 +66,7 @@ public class ClusteredServiceRunner {
 
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
-            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+            .errorHandler(Throwable::printStackTrace)
             .aeronDirectoryName(aeronDirectoryName)
             .clusterDir(new File(nodeDirName, "consensus-module"))
             .archiveContext(aeronArchiveContext.clone());
@@ -79,7 +76,7 @@ public class ClusteredServiceRunner {
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
-            .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
+            .errorHandler(Throwable::printStackTrace)
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(nodeDirName, "service"))
@@ -91,8 +88,8 @@ public class ClusteredServiceRunner {
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              CloseHelper.close(clusteredMediaDriver);
-              CloseHelper.close(clusteredServiceContainer);
+              CloseHelper.quietClose(clusteredMediaDriver);
+              CloseHelper.quietClose(clusteredServiceContainer);
               if (Configurations.CLEAN_SHUTDOWN) {
                 IoUtil.delete(new File(nodeDirName), true);
               }
