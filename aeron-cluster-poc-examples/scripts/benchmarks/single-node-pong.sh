@@ -11,10 +11,28 @@ export logLevel=ERROR
 
 java \
   -cp target/${JAR_FILE}:target/lib/* \
+  -XX:+UnlockExperimentalVMOptions \
+  -XX:+TrustFinalNonStaticFields \
   -XX:+UnlockDiagnosticVMOptions \
   -XX:GuaranteedSafepointInterval=300000 \
+  -XX:BiasedLockingStartupDelay=0 \
+  -XX:+UseParallelOldGC \
+  -Daeron.term.buffer.sparse.file=false \
+  -Daeron.socket.so_sndbuf=2m \
+  -Daeron.socket.so_rcvbuf=2m \
+  -Daeron.rcv.initial.window.length=2m \
   -Daeron.threading.mode=DEDICATED \
   -Daeron.archive.threading.mode=DEDICATED \
+  -Daeron.sender.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.receiver.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.conductor.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.archive.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.archive.recorder.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.archive.replayer.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.archive.file.sync.level=0 \
+  -Daeron.archive.segment.file.length=1g \
+  -Daeron.archive.control.mtu.length=4k \
+  -Daeron.spies.simulate.connection=true \
   -Dagrona.disable.bounds.checks=true \
   -Daeron.mtu.length=8k \
   -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8010" \
