@@ -1,5 +1,6 @@
 package io.scalecube.acpoc.benchmarks;
 
+import io.aeron.CommonContext;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
@@ -11,7 +12,6 @@ import org.HdrHistogram.Recorder;
 import org.agrona.BitUtil;
 import org.agrona.BufferUtil;
 import org.agrona.DirectBuffer;
-import org.agrona.IoUtil;
 import org.agrona.concurrent.IdleStrategy;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.YieldingIdleStrategy;
@@ -40,7 +40,8 @@ public class ClusterClientPing {
    */
   public static void main(String[] args) throws InterruptedException {
     String clientId = "client-benchmark" + Utils.instanceId();
-    String clientDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", clientId).toString();
+    String clientDirName =
+        Paths.get(CommonContext.getAeronDirectoryName(), "aeron", "cluster", clientId).toString();
     System.out.println("Cluster client directory: " + clientDirName);
 
     try (MediaDriver clientMediaDriver =

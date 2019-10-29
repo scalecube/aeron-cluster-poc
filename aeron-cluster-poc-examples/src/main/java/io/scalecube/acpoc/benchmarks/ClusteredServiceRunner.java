@@ -1,5 +1,6 @@
 package io.scalecube.acpoc.benchmarks;
 
+import io.aeron.CommonContext;
 import io.aeron.archive.Archive;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
@@ -38,7 +39,7 @@ public class ClusteredServiceRunner {
 
     System.out.println("Cluster node directory: " + nodeDirName);
 
-    String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
+    String aeronDirectoryName = Paths.get(CommonContext.getAeronDirectoryName(), nodeId).toString();
 
     AeronArchive.Context aeronArchiveContext =
         new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);

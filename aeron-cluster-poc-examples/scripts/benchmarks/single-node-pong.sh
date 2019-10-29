@@ -23,6 +23,8 @@ java \
   -Daeron.rcv.initial.window.length=2m \
   -Daeron.threading.mode=DEDICATED \
   -Daeron.archive.threading.mode=DEDICATED \
+  -Daeron.shared.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
+  -Daeron.sharednetwork.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
   -Daeron.sender.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
   -Daeron.receiver.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
   -Daeron.conductor.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
