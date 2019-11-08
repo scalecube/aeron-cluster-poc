@@ -29,6 +29,7 @@ public class ClusteredServiceImpl implements ClusteredService {
   public static final String TIMER_1_COMMAND = "SCHEDULE_TIMER_1";
   public static final String TIMER_2_COMMAND = "SCHEDULE_TIMER_2";
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
+  public static final String SHUTDOWN_COMMAND = "SHUTDOWN";
 
   private final CountersManager countersManager;
 
@@ -115,6 +116,10 @@ public class ClusteredServiceImpl implements ClusteredService {
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
       AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
       toggle(controlToggle, ToggleState.SNAPSHOT);
+    }
+    if (SHUTDOWN_COMMAND.equalsIgnoreCase(message)) {
+      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
+      toggle(controlToggle, ToggleState.SHUTDOWN);
     }
 
     if (session != null) {
