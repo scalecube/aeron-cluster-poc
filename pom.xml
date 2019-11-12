@@ -22,7 +22,7 @@
   </scm>
 
   <properties>
-    <aeron.version>1.21.2</aeron.version>
+    <aeron.version>1.23.1</aeron.version>
     <sbe-all.version>1.13.2</sbe-all.version>
     <agrona.version>1.0.7</agrona.version>
 
@@ -39,6 +39,7 @@
     <module>aeron-cluster-poc-client</module>
     <module>aeron-cluster-poc-server</module>
     <module>aeron-cluster-poc-examples</module>
+    <module>aeron-archive-poc</module>
   </modules>
 
   <dependencyManagement>
@@ -61,6 +62,11 @@
       <dependency>
         <groupId>io.aeron</groupId>
         <artifactId>aeron-cluster</artifactId>
+        <version>${aeron.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.aeron</groupId>
+        <artifactId>aeron-archive</artifactId>
         <version>${aeron.version}</version>
       </dependency>
 
