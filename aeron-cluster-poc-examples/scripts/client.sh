@@ -9,6 +9,7 @@ echo $JAR_FILE
 
 java \
   -cp target/${JAR_FILE}:target/lib/* \
+  -Dmessage.length=1024 \
   -Daeron.cluster.member.endpoints="0=localhost:20110,1=localhost:20111,2=localhost:20112" \
   ${JVM_OPTS} io.scalecube.acpoc.ClusterClientRunner
 

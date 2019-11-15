@@ -7,6 +7,8 @@ import io.aeron.driver.ThreadingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
+import org.agrona.BitUtil;
+import org.agrona.BufferUtil;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import reactor.core.publisher.Mono;
 public class ClusterClientRunner {
 
   public static final Logger logger = LoggerFactory.getLogger(ClusterClientRunner.class);
+  private static final int MESSAGE_LENGTH = Integer.getInteger("message.length", 1024);
 
   /**
    * Main method.
@@ -50,15 +53,21 @@ public class ClusterClientRunner {
                 .aeronDirectoryName(clientDirName)
                 .ingressChannel("aeron:udp"));
 
+    UnsafeBuffer buffer =
+        new UnsafeBuffer(
+            BufferUtil.allocateDirectAligned(MESSAGE_LENGTH, BitUtil.CACHE_LINE_LENGTH));
+
+    System.err.println("MESSAGE_LENGTH = " + MESSAGE_LENGTH);
+
     Disposable sender =
-        Flux.interval(Duration.ofSeconds(1))
+        Flux.interval(Duration.ofMillis(100))
             .subscribe(
                 i -> {
                   String request = "Hello to cluster " + i;
 
                   byte[] bytes = request.getBytes(StandardCharsets.UTF_8);
-                  UnsafeBuffer buffer = new UnsafeBuffer(bytes);
-                  long l = client.offer(buffer, 0, bytes.length);
+                  buffer.putBytes(0, request.getBytes(StandardCharsets.UTF_8));
+                  long l = client.offer(buffer, 0, MESSAGE_LENGTH);
 
                   logger.info("Client: REQUEST {} send, result={}", i, l);
                 });
