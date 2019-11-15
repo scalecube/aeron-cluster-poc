@@ -18,6 +18,10 @@
     </dependency>
     <dependency>
       <groupId>io.aeron</groupId>
+      <artifactId>aeron-samples</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
       <artifactId>aeron-client</artifactId>
     </dependency>
     <dependency>

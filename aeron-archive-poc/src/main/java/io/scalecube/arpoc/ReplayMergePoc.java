@@ -3,6 +3,8 @@ package io.scalecube.arpoc;
 import static io.aeron.archive.codecs.SourceLocation.REMOTE;
 import static io.scalecube.arpoc.Utils.awaitPosition;
 import static io.scalecube.arpoc.Utils.awaitRecordingCounterId;
+import static io.scalecube.arpoc.Utils.offer;
+import static io.scalecube.arpoc.Utils.offerMessages;
 
 import io.aeron.Aeron;
 import io.aeron.ChannelUriStringBuilder;
@@ -24,10 +26,9 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.CloseHelper;
-import org.agrona.ExpandableArrayBuffer;
 import org.agrona.concurrent.status.CountersReader;
 
-public class AeronMergePoc {
+public class ReplayMergePoc {
 
   private static final String MESSAGE_PREFIX = "Message-Prefix-";
 
@@ -46,7 +47,6 @@ public class AeronMergePoc {
   private static Aeron aeron;
   private static AeronArchive aeronArchive;
   private static ArchivingMediaDriver archivingMediaDriver;
-  private static final ExpandableArrayBuffer buffer = new ExpandableArrayBuffer();
   private static final AtomicInteger received = new AtomicInteger();
 
   private static final ChannelUriStringBuilder publicationChannel =
@@ -57,13 +57,13 @@ public class AeronMergePoc {
           .controlMode(CommonContext.MDC_CONTROL_MODE_DYNAMIC)
           .termLength(TERM_LENGTH);
 
-  private static ChannelUriStringBuilder recordingChannel =
+  private static final ChannelUriStringBuilder recordingChannel =
       new ChannelUriStringBuilder()
           .media(CommonContext.UDP_MEDIA)
           .endpoint(RECORDING_ENDPOINT)
           .controlEndpoint(CONTROL_ENDPOINT);
 
-  private static ChannelUriStringBuilder subscriptionChannel =
+   private static final ChannelUriStringBuilder subscriptionChannel =
       new ChannelUriStringBuilder()
           .media(CommonContext.UDP_MEDIA)
           .controlMode(CommonContext.MDC_CONTROL_MODE_MANUAL);
@@ -85,15 +85,18 @@ public class AeronMergePoc {
           .endpoint(REPLAY_ENDPOINT);
 
   public static void main(String[] args) {
-    final File archiveDir = Paths.get("target", "aeron", "archive").toFile();
+    init();
 
-    init(archiveDir);
-//        shutdownCloseHook();
+    replayMergeScenario();
 
+    shutdown();
+  }
+
+  private static void replayMergeScenario() {
     final FragmentHandler fragmentHandler =
         new FragmentAssembler(
-            (buffer, offset, length, header) -> {
-              System.out.println("receive: " + buffer.getStringWithoutLengthAscii(offset, length));
+            (buffer1, offset, length, header) -> {
+              System.out.println("receive: " + buffer1.getStringWithoutLengthAscii(offset, length));
 
               received.incrementAndGet();
             });
@@ -142,24 +145,8 @@ public class AeronMergePoc {
     }
   }
 
-  private static void offer(final Publication publication, final int index, final String prefix) {
-    final String message = prefix + index;
-    final int length = buffer.putStringWithoutLengthAscii(0, message);
-
-    while (publication.offer(buffer, 0, length) <= 0) {
-      Thread.yield();
-    }
-  }
-
-  private static void offerMessages(
-      final Publication publication, final int startIndex, final int count, final String prefix) {
-
-    for (int i = startIndex; i < (startIndex + count); i++) {
-      offer(publication, i, prefix);
-    }
-  }
-
-  private static void init(File archiveDir) {
+  private static void init() {
+    final File archiveDir = Paths.get("target", "aeron", "archive").toFile();
     final MediaDriver.Context mediaDriverContext = new MediaDriver.Context();
 
     archivingMediaDriver =
@@ -192,13 +179,8 @@ public class AeronMergePoc {
             new AeronArchive.Context().errorHandler(Throwable::printStackTrace).aeron(aeron));
   }
 
-//    private static void shutdownCloseHook() {
-//      Runtime.getRuntime()
-//          .addShutdownHook(
-//              new Thread(
-//                  () -> {
-//                    CloseHelper.quietCloseAll(aeronArchive, aeron, archivingMediaDriver);
-//                    archivingMediaDriver.archive().context().deleteArchiveDirectory();
-//                  }));
-//    }
+  private static void shutdown() {
+    CloseHelper.quietCloseAll(aeronArchive, aeron, archivingMediaDriver);
+    archivingMediaDriver.archive().context().deleteArchiveDirectory();
+  }
 }
