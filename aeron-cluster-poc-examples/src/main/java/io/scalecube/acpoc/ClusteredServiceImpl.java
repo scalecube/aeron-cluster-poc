@@ -2,6 +2,7 @@ package io.scalecube.acpoc;
 
 import io.aeron.Image;
 import io.aeron.Publication;
+import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusterControl;
 import io.aeron.cluster.ClusterControl.ToggleState;
 import io.aeron.cluster.codecs.CloseReason;
@@ -31,15 +32,21 @@ public class ClusteredServiceImpl implements ClusteredService {
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
 
   private final CountersManager countersManager;
+  private final AeronArchive.Context aeronArchiveContext;
 
   private Cluster cluster;
+  private AeronArchive aeronArchive;
 
   // State
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
+  private EventRecorder eventRecorder;
+  private long recordingPosition;
 
-  public ClusteredServiceImpl(CountersManager countersManager) {
+  public ClusteredServiceImpl(
+      CountersManager countersManager, AeronArchive.Context aeronArchiveContext) {
     this.countersManager = countersManager;
+    this.aeronArchiveContext = aeronArchiveContext;
   }
 
   @Override
@@ -53,6 +60,9 @@ public class ClusteredServiceImpl implements ClusteredService {
     if (snapshotImage != null) {
       onLoadSnapshot(snapshotImage);
     }
+
+    aeronArchive = AeronArchive.connect(aeronArchiveContext.clone().idleStrategy(cluster));
+    eventRecorder = EventRecorder.createEventRecorder(aeronArchive, cluster, recordingPosition);
   }
 
   @Override
@@ -105,16 +115,18 @@ public class ClusteredServiceImpl implements ClusteredService {
     // Updated service state
     int value = serviceCounter.incrementAndGet();
 
-    if (TIMER_1_COMMAND.equalsIgnoreCase(message)) {
-      scheduleTimer(1, cluster.time() + TIMER_1_INTERVAL);
-    }
-    if (TIMER_2_COMMAND.equalsIgnoreCase(message)) {
-      scheduleTimer(2, cluster.time() + TIMER_2_INTERVAL);
-    }
+    // if (TIMER_1_COMMAND.equalsIgnoreCase(message)) {
+    //   scheduleTimer(1, cluster.time() + TIMER_1_INTERVAL);
+    // }
+    // if (TIMER_2_COMMAND.equalsIgnoreCase(message)) {
+    //   scheduleTimer(2, cluster.time() + TIMER_2_INTERVAL);
+    // }
 
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
       AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
       toggle(controlToggle, ToggleState.SNAPSHOT);
+    } else {
+      eventRecorder.recordEvent(bytes);
     }
 
     if (session != null) {
@@ -138,12 +150,12 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         correlationId);
 
-    if (correlationId == 1) {
-      scheduleTimer(correlationId, cluster.time() + TIMER_1_INTERVAL);
-    }
-    if (correlationId == 2) {
-      scheduleTimer(correlationId, cluster.time() + TIMER_2_INTERVAL);
-    }
+    // if (correlationId == 1) {
+    //   scheduleTimer(correlationId, cluster.time() + TIMER_1_INTERVAL);
+    // }
+    // if (correlationId == 2) {
+    //   scheduleTimer(correlationId, cluster.time() + TIMER_2_INTERVAL);
+    // }
   }
 
   @Override
@@ -157,15 +169,18 @@ public class ClusteredServiceImpl implements ClusteredService {
         snapshotPublication.streamId(),
         snapshotPublication.position());
 
-    UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES]);
+    UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES + Long.BYTES]);
     int value = serviceCounter.get();
+    recordingPosition = eventRecorder.recordingPosition(aeronArchive);
     buffer.putInt(0, value);
+    buffer.putLong(Integer.BYTES, recordingPosition);
     long offer = snapshotPublication.offer(buffer);
 
     logger.info(
-        "onTakeSnapshot => memberId: {}, serviceCounter(value={}) snapshot taken: {}",
+        "onTakeSnapshot => memberId: {}, serviceCounter(value={}, recPos={}) snapshot taken: {}",
         cluster.memberId(),
         value,
+        recordingPosition,
         offer);
   }
 
@@ -180,7 +195,10 @@ public class ClusteredServiceImpl implements ClusteredService {
         snapshotImage.position());
 
     FragmentHandler handler =
-        (buffer, offset, length, header) -> serviceCounter.set(buffer.getInt(offset));
+        (buffer, offset, length, header) -> {
+          serviceCounter.set(buffer.getInt(offset));
+          recordingPosition = buffer.getLong(offset + Integer.BYTES);
+        };
 
     while (true) {
       int fragments = snapshotImage.poll(handler, 1);
@@ -206,9 +224,9 @@ public class ClusteredServiceImpl implements ClusteredService {
         newRole,
         new Date(cluster.time()));
 
-    if (newRole == Role.LEADER) {
-      sendTimerCommand();
-    }
+    // if (newRole == Role.LEADER) {
+    //   sendTimerCommand();
+    // }
   }
 
   @Override

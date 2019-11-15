@@ -79,7 +79,8 @@ public class ClusteredServiceRunner {
         ClusteredMediaDriver.launch(mediaDriverContext, archiveContext, consensusModuleContext);
 
     ClusteredService clusteredService =
-        new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
+        new ClusteredServiceImpl(
+            clusteredMediaDriver.mediaDriver().context().countersManager(), aeronArchiveContext);
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
