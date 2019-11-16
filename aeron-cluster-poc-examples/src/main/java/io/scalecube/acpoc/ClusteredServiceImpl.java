@@ -13,6 +13,8 @@ import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -41,7 +43,7 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
   private EventRecorder eventRecorder;
-  private long recordingPosition;
+  private RecordingDescriptor eventRecording;
 
   public ClusteredServiceImpl(
       CountersManager countersManager, AeronArchive.Context aeronArchiveContext) {
@@ -62,7 +64,7 @@ public class ClusteredServiceImpl implements ClusteredService {
     }
 
     aeronArchive = AeronArchive.connect(aeronArchiveContext.clone().idleStrategy(cluster));
-    eventRecorder = EventRecorder.createEventRecorder(aeronArchive, cluster, recordingPosition);
+    eventRecorder = EventRecorder.createEventRecorder(aeronArchive, cluster, eventRecording);
   }
 
   @Override
@@ -169,19 +171,24 @@ public class ClusteredServiceImpl implements ClusteredService {
         snapshotPublication.streamId(),
         snapshotPublication.position());
 
-    UnsafeBuffer buffer = new UnsafeBuffer(new byte[Integer.BYTES + Long.BYTES]);
-    int value = serviceCounter.get();
-    recordingPosition = eventRecorder.recordingPosition(aeronArchive);
-    buffer.putInt(0, value);
-    buffer.putLong(Integer.BYTES, recordingPosition);
-    long offer = snapshotPublication.offer(buffer);
+    eventRecording = eventRecorder.eventRecording(aeronArchive);
+
+    final Map<String, String> map = new HashMap<>();
+    map.put("serviceCounter", String.valueOf(serviceCounter.get()));
+    map.put("eventRecording.recordingId", String.valueOf(eventRecording.recordingId));
+    map.put("eventRecording.initialTermId", String.valueOf(eventRecording.initialTermId));
+    map.put("eventRecording.termBufferLength", String.valueOf(eventRecording.termBufferLength));
+    map.put("eventRecording.segmentFileLength", String.valueOf(eventRecording.segmentFileLength));
+    map.put("eventRecording.startPosition", String.valueOf(eventRecording.startPosition));
+    map.put("eventRecording.stopPosition", String.valueOf(eventRecording.stopPosition));
+    map.put("eventRecording.mtuLength", String.valueOf(eventRecording.mtuLength));
+    map.put("eventRecording.recordingPosition", String.valueOf(eventRecording.recordingPosition));
+
+    final byte[] bytes = Utils.toJson(map);
+    long offer = snapshotPublication.offer(new UnsafeBuffer(bytes));
 
     logger.info(
-        "onTakeSnapshot => memberId: {}, serviceCounter(value={}, recPos={}) snapshot taken: {}",
-        cluster.memberId(),
-        value,
-        recordingPosition,
-        offer);
+        "onTakeSnapshot => memberId: {}, ({}) snapshot taken: {}", cluster.memberId(), map, offer);
   }
 
   private void onLoadSnapshot(Image snapshotImage) {
@@ -196,8 +203,17 @@ public class ClusteredServiceImpl implements ClusteredService {
 
     FragmentHandler handler =
         (buffer, offset, length, header) -> {
-          serviceCounter.set(buffer.getInt(offset));
-          recordingPosition = buffer.getLong(offset + Integer.BYTES);
+          Map<String, String> map = Utils.fromJson(buffer, offset, length);
+          serviceCounter.set(Integer.parseInt(map.get("serviceCounter")));
+          eventRecording = new RecordingDescriptor();
+          eventRecording.recordingId = Long.parseLong( map.get("eventRecording.recordingId"));
+          eventRecording.initialTermId = Integer.parseInt(map.get("eventRecording.initialTermId"));
+          eventRecording.termBufferLength = Integer.parseInt(map.get("eventRecording.termBufferLength"));
+          eventRecording.segmentFileLength = Integer.parseInt(map.get("eventRecording.segmentFileLength"));
+          eventRecording.startPosition = Long.parseLong( map.get("eventRecording.startPosition"));
+          eventRecording.stopPosition = Long.parseLong( map.get("eventRecording.stopPosition"));
+          eventRecording.mtuLength = Integer.parseInt( map.get("eventRecording.mtuLength"));
+          eventRecording.recordingPosition =Long.parseLong( map.get("eventRecording.recordingPosition"));
         };
 
     while (true) {
@@ -211,9 +227,10 @@ public class ClusteredServiceImpl implements ClusteredService {
     }
 
     logger.info(
-        "onLoadSnapshot => memberId: {}, applied new serviceCounter(value={})",
+        "onLoadSnapshot => memberId: {}, applied new serviceCounter(value={}, eventRecording={})",
         cluster.memberId(),
-        serviceCounter.get());
+        serviceCounter.get(),
+        eventRecording);
   }
 
   @Override

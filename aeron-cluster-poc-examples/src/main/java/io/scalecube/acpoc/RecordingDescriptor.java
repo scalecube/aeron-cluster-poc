@@ -2,22 +2,26 @@ package io.scalecube.acpoc;
 
 public class RecordingDescriptor {
 
-  public final long controlSessionId;
-  public final long correlationId;
-  public final long recordingId;
-  public final long startTimestamp;
-  public final long stopTimestamp;
-  public final long startPosition;
-  public final long stopPosition;
-  public final int initialTermId;
-  public final int segmentFileLength;
-  public final int termBufferLength;
-  public final int mtuLength;
-  public final int sessionId;
-  public final int streamId;
-  public final String strippedChannel;
-  public final String originalChannel;
-  public final String sourceIdentity;
+  public long controlSessionId;
+  public long correlationId;
+  public long recordingId;
+  public long startTimestamp;
+  public long stopTimestamp;
+  public long startPosition;
+  public long stopPosition;
+  public int initialTermId;
+  public int segmentFileLength;
+  public int termBufferLength;
+  public int mtuLength;
+  public int sessionId;
+  public int streamId;
+  public String strippedChannel;
+  public String originalChannel;
+  public String sourceIdentity;
+
+  public long recordingPosition;
+
+  public RecordingDescriptor() {}
 
   /**
    * Constructor.
@@ -112,6 +116,8 @@ public class RecordingDescriptor {
         + ", sourceIdentity='"
         + sourceIdentity
         + '\''
+        + ", recordingPosition="
+        + recordingPosition
         + '}';
   }
 }

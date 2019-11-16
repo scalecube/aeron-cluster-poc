@@ -52,6 +52,7 @@ public class ClusteredServiceRunner {
             .threadingMode(ThreadingMode.SHARED)
             .warnIfDirectoryExists(true)
             .dirDeleteOnStart(true)
+            .dirDeleteOnShutdown(true)
             .aeronDirectoryName(aeronDirectoryName)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
@@ -96,8 +97,8 @@ public class ClusteredServiceRunner {
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              CloseHelper.close(clusteredMediaDriver);
               CloseHelper.close(clusteredServiceContainer);
+              CloseHelper.close(clusteredMediaDriver);
               return null;
             });
     onShutdown.block();

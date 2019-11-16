@@ -17,50 +17,71 @@ public class EventRecorder {
 
   private static final Logger logger = LoggerFactory.getLogger(EventRecorder.class);
 
-  private static final int EVENT_STREAM_ID = 12123;
+  public static final int EVENT_STREAM_ID = 12123;
 
   private final MutableDirectBuffer buffer = new UnsafeBuffer();
   private final Publication publication;
   private final IdleStrategy idleStrategy;
 
-  private long recordingPosition;
+  private final RecordingDescriptor eventRecording;
 
   /** Create an event recorder} to publish events. */
   public static EventRecorder createEventRecorder(
-      AeronArchive aeronArchive, Cluster cluster, long recordingPosition) {
+      AeronArchive aeronArchive, Cluster cluster, RecordingDescriptor eventRecording) {
     RecordingDescriptor lastRecording =
         AeronArchiveUtil.findLastRecording(aeronArchive, EVENT_STREAM_ID);
 
-    if (lastRecording == null && recordingPosition > 0) {
-      // todo need to catch up missing events from other nodes (discovery)
-      logger.error("eventPosition = {} but lastRecording wasn't found", recordingPosition);
-      throw new IllegalStateException("eventPosition > 0 but lastRecording wasn't found");
+    if (eventRecording == null) {
+      eventRecording = new RecordingDescriptor();
     }
 
-    if (lastRecording != null && recordingPosition > lastRecording.stopPosition) {
+    // if (lastRecording == null && eventRecording.recordingPosition > 0) {
+    //   // todo need to catch up missing events from other nodes (discovery)
+    //   logger.error("eventPosition = {} but lastRecording wasn't found",
+    // eventRecording.recordingPosition);
+    //   throw new IllegalStateException("eventPosition > 0 but lastRecording wasn't found");
+    // }
+
+    if (lastRecording != null && eventRecording.recordingPosition > lastRecording.stopPosition) {
       // todo need to catch up missing events from other nodes (discovery)
       logger.error(
           "lastRecording.stopPosition = {} less than eventPosition = {}",
           lastRecording.stopPosition,
-          recordingPosition);
+          eventRecording.recordingPosition);
       throw new IllegalStateException("lastRecording.stopPosition < eventPosition");
     }
 
     Publication orderEventPublication;
 
-    if (lastRecording == null && recordingPosition == 0) {
+    if (lastRecording == null && eventRecording.recordingPosition == 0) {
       // Start new recording
       orderEventPublication =
           cluster.aeron().addExclusivePublication(CommonContext.IPC_CHANNEL, EVENT_STREAM_ID);
       String channel =
           ChannelUri.addSessionId(CommonContext.IPC_CHANNEL, orderEventPublication.sessionId());
       aeronArchive.startRecording(channel, EVENT_STREAM_ID, SourceLocation.LOCAL);
+    } else if (lastRecording == null && eventRecording.recordingPosition > 0) {
+
+      String channel0 =
+          new ChannelUriStringBuilder()
+              .media(CommonContext.IPC_MEDIA)
+              .mtu(eventRecording.mtuLength)
+              .initialPosition(
+                  eventRecording.recordingPosition,
+                  eventRecording.initialTermId,
+                  eventRecording.termBufferLength)
+              .build();
+
+      // Start new recording
+      orderEventPublication = cluster.aeron().addExclusivePublication(channel0, EVENT_STREAM_ID);
+      String channel = ChannelUri.addSessionId(channel0, orderEventPublication.sessionId());
+      aeronArchive.startRecording(channel, EVENT_STREAM_ID, SourceLocation.LOCAL);
     } else {
       // Continue recording
       long stopPosition = lastRecording.stopPosition;
-      if (recordingPosition < stopPosition) {
-        aeronArchive.truncateRecording(lastRecording.recordingId, recordingPosition);
-        stopPosition = recordingPosition;
+      if (eventRecording.recordingPosition < stopPosition) {
+        aeronArchive.truncateRecording(lastRecording.recordingId, eventRecording.recordingPosition);
+        stopPosition = eventRecording.recordingPosition;
       }
 
       ChannelUriStringBuilder channelBuilder =
@@ -78,21 +99,29 @@ public class EventRecorder {
           lastRecording.recordingId, channel, EVENT_STREAM_ID, SourceLocation.LOCAL);
     }
 
-    return new EventRecorder(orderEventPublication, cluster);
+    logger.info(
+        "orderEventPublication: {}",
+        ChannelUri.addSessionId(
+            orderEventPublication.channel(), orderEventPublication.sessionId()));
+
+    return new EventRecorder(orderEventPublication, eventRecording, cluster);
   }
 
-  private EventRecorder(Publication publication, IdleStrategy idleStrategy) {
+  private EventRecorder(
+      Publication publication, RecordingDescriptor eventRecording, IdleStrategy idleStrategy) {
     this.publication = publication;
+    this.eventRecording = eventRecording;
     this.idleStrategy = idleStrategy;
   }
 
   /** Records event in aeron archive. The command will process until record event successfully. */
   public void recordEvent(byte[] content) {
-    buffer.wrap(content);
+    logger.info("recordEvent: {}", new String(content));
+    buffer.wrap(content, 0, content.length);
     while (true) {
       long result = publication.offer(buffer);
       if (result > 0) {
-        recordingPosition = result;
+        eventRecording.recordingPosition = result;
         break;
       }
       checkResultAndIdle(result);
@@ -100,24 +129,27 @@ public class EventRecorder {
   }
 
   /**
-   * Returns event recording position.
+   * Returns event recording.
    *
    * @param aeronArchive aeron archive
    * @return event recording position
    */
-  public long recordingPosition(AeronArchive aeronArchive) {
+  public RecordingDescriptor eventRecording(AeronArchive aeronArchive) {
     RecordingDescriptor lastRecording =
         AeronArchiveUtil.findLastRecording(aeronArchive, EVENT_STREAM_ID);
 
     if (lastRecording == null) {
       throw new IllegalStateException("Not expecting not-existing lastRecording at onTakeSnapshot");
     }
+
     long foundRecordingPosition = aeronArchive.getRecordingPosition(lastRecording.recordingId);
+    lastRecording.recordingPosition = foundRecordingPosition;
     logger.info(
-        "recordingPosition: {}, foundRecordingPosition: {}",
-        recordingPosition,
-        foundRecordingPosition);
-    return foundRecordingPosition;
+        "recordingPosition: {}, foundRecordingPosition: {}, recording: {}",
+        eventRecording.recordingPosition,
+        foundRecordingPosition,
+        lastRecording);
+    return lastRecording;
   }
 
   private void checkResultAndIdle(long result) {

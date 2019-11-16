@@ -1,9 +1,13 @@
 package io.scalecube.acpoc;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import org.agrona.DirectBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import sun.misc.Signal;
@@ -12,6 +16,8 @@ import sun.misc.SignalHandler;
 public class Utils {
 
   public static final Logger logger = LoggerFactory.getLogger(Utils.class);
+
+  private static final ObjectMapper mapper = new ObjectMapper();
 
   private Utils() {
     // no-op
@@ -66,5 +72,24 @@ public class Utils {
   public static String instanceId() {
     return Optional.ofNullable(Configurations.INSTANCE_ID)
         .orElseGet(() -> "" + System.currentTimeMillis());
+  }
+
+  public static byte[] toJson(Map<String, String> map) {
+    try {
+      return mapper.writeValueAsBytes(map);
+    } catch (Exception e) {
+      throw Exceptions.propagate(e);
+    }
+  }
+
+  public static Map<String, String> fromJson(DirectBuffer buffer, int offset, int length) {
+    try {
+      byte[] bytes = new byte[length];
+      buffer.getBytes(offset, bytes);
+      //noinspection unchecked
+      return mapper.readValue(bytes, Map.class);
+    } catch (Exception e) {
+      throw Exceptions.propagate(e);
+    }
   }
 }
