@@ -18,7 +18,7 @@ java \
 -Daeron.archive.recording.events.channel="aeron:udp?control-mode=dynamic|control=localhost:8033" \
 -Daeron.archive.local.control.channel="aeron:ipc?term-length=64k" \
 -Daeron.cluster.member.endpoints="localhost:20113,localhost:20223,localhost:20333,localhost:20443,localhost:8013" \
--Daeron.cluster.members.status.endpoints="localhost:20220,localhost:20221,localhost:20222" \
+-Daeron.cluster.members.status.endpoints="localhost:20225" \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20553" \
 -Dio.scalecube.acpoc.cleanStart=true \
