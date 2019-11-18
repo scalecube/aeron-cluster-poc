@@ -22,9 +22,9 @@
   </scm>
 
   <properties>
-    <aeron.version>1.21.2</aeron.version>
-    <sbe-all.version>1.13.2</sbe-all.version>
-    <agrona.version>1.0.7</agrona.version>
+    <aeron.version>1.23.0</aeron.version>
+    <sbe-all.version>1.14.0</sbe-all.version>
+    <agrona.version>1.0.9</agrona.version>
 
     <reactor.version>Californium-SR5</reactor.version>
 
