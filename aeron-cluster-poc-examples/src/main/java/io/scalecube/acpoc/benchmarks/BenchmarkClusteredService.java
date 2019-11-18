@@ -66,7 +66,13 @@ public class BenchmarkClusteredService implements ClusteredService {
       Header header) {
     if (cluster.role() == Role.LEADER) {
       // Send response back
-      session.offer(buffer, offset, length);
+      while (true) {
+        long result = session.offer(buffer, offset, length);
+        if (result > 0) {
+          break;
+        }
+        checkResultAndIdle(result);
+      }
     }
   }
 
@@ -114,5 +120,17 @@ public class BenchmarkClusteredService implements ClusteredService {
         cluster.memberId(),
         cluster.role(),
         cluster.clientSessions().size());
+  }
+
+  private void checkResultAndIdle(long result) {
+    if (result == Publication.NOT_CONNECTED
+        || result == Publication.CLOSED
+        || result == Publication.MAX_POSITION_EXCEEDED) {
+      throw new IllegalStateException("unexpected publication state: " + result);
+    }
+    if (Thread.currentThread().isInterrupted()) {
+      throw new IllegalStateException("Unexpected interrupt");
+    }
+    cluster.idle();
   }
 }
