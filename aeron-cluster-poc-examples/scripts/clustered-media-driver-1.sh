@@ -22,9 +22,7 @@ java \
 -Dio.scalecube.acpoc.instanceId=n1 \
 -Dio.scalecube.acpoc.cleanStart=false \
 -Dio.scalecube.acpoc.cleanShutdown=false \
--Dio.scalecube.acpoc.snapshotPeriodSecs=99999 \
 -Daeron.cluster.session.timeout=30000000000 \
 -Daeron.cluster.leader.heartbeat.timeout=2000000000 \
--Dio.scalecube.acpoc.clusteredMediaDriverEmbedded=false \
 -Dio.scalecube.acpoc.volume=target2 \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusteredServiceRunner
+  ${JVM_OPTS} io.scalecube.acpoc.ClusteredMediaDriverRunner

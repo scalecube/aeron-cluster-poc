@@ -1,17 +1,10 @@
 package io.scalecube.acpoc;
 
-import io.aeron.archive.Archive;
-import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
-import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
 import io.aeron.cluster.service.ClusteredService;
 import io.aeron.cluster.service.ClusteredServiceContainer;
-import io.aeron.driver.DefaultAllowTerminationValidator;
-import io.aeron.driver.MediaDriver;
-import io.aeron.driver.MinMulticastFlowControlSupplier;
-import io.aeron.driver.ThreadingMode;
 import java.io.File;
 import java.nio.file.Paths;
 import org.agrona.CloseHelper;
@@ -35,58 +28,25 @@ public class ClusteredServiceRunner {
   public static void main(String[] args) {
     String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
     String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
-    String nodeDirName = Paths.get("target", "aeron", "cluster", nodeId).toString();
+    String volumeDir = Paths.get(Configurations.VOLUME_DIR, "aeron", "cluster", nodeId).toString();
+    String aeronDirectoryName = Paths.get(volumeDir, "media").toString();
 
-    System.out.println("Cluster node directory: " + nodeDirName);
-
-    String aeronDirectoryName = Paths.get(nodeDirName, "media").toString();
-
-    AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
-
-    MediaDriver.Context mediaDriverContext =
-        new MediaDriver.Context()
-            .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
-            .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
-            .terminationValidator(new DefaultAllowTerminationValidator())
-            .threadingMode(ThreadingMode.SHARED)
-            .warnIfDirectoryExists(true)
-            .dirDeleteOnStart(true)
-            .aeronDirectoryName(aeronDirectoryName)
-            .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
-
-    Archive.Context archiveContext =
-        new Archive.Context()
-            .errorHandler(ex -> logger.error("Exception occurred at Archive: ", ex))
-            .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
-            .aeronDirectoryName(aeronDirectoryName)
-            .archiveDir(new File(nodeDirName, "archive"))
-            .controlChannel(aeronArchiveContext.controlRequestChannel())
-            .controlStreamId(aeronArchiveContext.controlRequestStreamId())
-            .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
-            .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel())
-            .threadingMode(ArchiveThreadingMode.SHARED);
-
-    ConsensusModule.Context consensusModuleContext =
-        new ConsensusModule.Context()
-            .errorHandler(ex -> logger.error("Exception occurred at ConsensusModule: ", ex))
-            .terminationHook(() -> logger.info("TerminationHook called on ConsensusModule"))
-            .aeronDirectoryName(aeronDirectoryName)
-            .clusterDir(new File(nodeDirName, "consensus"))
-            .archiveContext(aeronArchiveContext.clone());
+    System.out.println("Volume directory: " + volumeDir);
+    System.out.println("Aeron directory: " + aeronDirectoryName);
 
     ClusteredMediaDriver clusteredMediaDriver =
-        ClusteredMediaDriver.launch(mediaDriverContext, archiveContext, consensusModuleContext);
+        Configurations.CLUSTERED_MEDIA_DRIVER_EMBEDDED
+            ? ClusteredMediaDriverRunner.launchClusteredMediaDriver(aeronDirectoryName, volumeDir)
+            : null;
 
-    ClusteredService clusteredService =
-        new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
+    ClusteredService clusteredService = new ClusteredServiceImpl();
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
             .errorHandler(ex -> logger.error("Exception occurred: " + ex, ex))
             .aeronDirectoryName(aeronDirectoryName)
-            .archiveContext(aeronArchiveContext.clone())
-            .clusterDir(new File(nodeDirName, "service"))
+            .archiveContext(new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName))
+            .clusterDir(new File(volumeDir, "service"))
             .clusteredService(clusteredService);
 
     ClusteredServiceContainer clusteredServiceContainer =
