@@ -63,6 +63,13 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>com.opencsv</groupId>
+      <artifactId>opencsv</artifactId>
+    </dependency>
+
+    
   </dependencies>
 
   <build>
