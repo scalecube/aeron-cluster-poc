@@ -99,7 +99,8 @@ public class ClusterClient implements AutoCloseable {
 
   private AeronCluster connect(Supplier<AeronCluster.Context> contextSupplier) {
     AsyncConnect asyncConnect = AeronCluster.asyncConnect(contextSupplier.get().clone());
-    SleepingIdleStrategy idleStrategy = new SleepingIdleStrategy(TimeUnit.SECONDS.toNanos(1));
+    SleepingIdleStrategy idleStrategy =
+        new SleepingIdleStrategy(TimeUnit.MILLISECONDS.toNanos(200));
     while (true) {
       try {
         AeronCluster aeronCluster = asyncConnect.poll();
