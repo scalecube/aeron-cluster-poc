@@ -1,5 +1,7 @@
 package io.scalecube.acpoc;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import io.aeron.Image;
 import io.aeron.Publication;
 import io.aeron.cluster.ClusterControl;
@@ -17,6 +19,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
 import org.agrona.concurrent.status.CountersManager;
+import org.agrona.concurrent.status.CountersReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +33,7 @@ public class ClusteredServiceImpl implements ClusteredService {
   public static final String TIMER_2_COMMAND = "SCHEDULE_TIMER_2";
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
 
-  private final CountersManager countersManager;
+  private CountersManager countersManager;
 
   private Cluster cluster;
 
@@ -38,9 +41,7 @@ public class ClusteredServiceImpl implements ClusteredService {
 
   private final AtomicInteger serviceCounter = new AtomicInteger();
 
-  public ClusteredServiceImpl(CountersManager countersManager) {
-    this.countersManager = countersManager;
-  }
+  public ClusteredServiceImpl() {}
 
   @Override
   public void onStart(Cluster cluster, Image snapshotImage) {
@@ -53,6 +54,11 @@ public class ClusteredServiceImpl implements ClusteredService {
     if (snapshotImage != null) {
       onLoadSnapshot(snapshotImage);
     }
+
+    CountersReader countersReader = cluster.context().aeron().countersReader();
+    countersManager =
+        new CountersManager(
+            countersReader.metaDataBuffer(), countersReader.valuesBuffer(), US_ASCII);
   }
 
   @Override

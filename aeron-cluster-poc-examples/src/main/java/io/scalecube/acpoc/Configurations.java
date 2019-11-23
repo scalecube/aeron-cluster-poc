@@ -16,6 +16,11 @@ public class Configurations {
   public static final boolean CLEAN_SHUTDOWN =
       Boolean.getBoolean("io.scalecube.acpoc.cleanShutdown");
 
+  public static final boolean CLUSTERED_MEDIA_DRIVER_EMBEDDED =
+      Boolean.getBoolean("io.scalecube.acpoc.clusteredMediaDriverEmbedded");
+
+  public static final String VOLUME_DIR = System.getProperty("io.scalecube.acpoc.volume", "target");
+
   private Configurations() {
     // no-op
   }

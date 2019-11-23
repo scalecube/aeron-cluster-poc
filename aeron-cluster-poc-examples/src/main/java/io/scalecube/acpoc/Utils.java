@@ -12,6 +12,7 @@ import sun.misc.SignalHandler;
 public class Utils {
 
   public static final Logger logger = LoggerFactory.getLogger(Utils.class);
+  private static final long INSTANCE_ID = System.currentTimeMillis();
 
   private Utils() {
     // no-op
@@ -64,7 +65,6 @@ public class Utils {
    * @return instance id
    */
   public static String instanceId() {
-    return Optional.ofNullable(Configurations.INSTANCE_ID)
-        .orElseGet(() -> "" + System.currentTimeMillis());
+    return Optional.ofNullable(Configurations.INSTANCE_ID).orElseGet(() -> "" + INSTANCE_ID);
   }
 }
