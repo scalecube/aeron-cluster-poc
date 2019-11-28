@@ -1,9 +1,11 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
 import io.aeron.logbuffer.Header;
+import io.scalecube.acpoc.benchmarks.RateReporter;
+import io.scalecube.acpoc.benchmarks.Runners;
 import java.util.concurrent.TimeUnit;
 import org.agrona.BitUtil;
 import org.agrona.BufferUtil;
@@ -12,7 +14,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.UnsafeBuffer;
 
-public class ClusterLatencyBenchmark {
+public class ClusterThroughputBenchmark {
 
   /**
    * Main method.
@@ -31,7 +33,7 @@ public class ClusterLatencyBenchmark {
     private ClusterNode clusterNode;
     private ClusterClient clusterClient;
     private SenderReceiverAgentRunner senderReceiverRunner;
-    private LatencyReporter reporter;
+    private RateReporter reporter;
 
     State() {
       try {
@@ -45,7 +47,7 @@ public class ClusterLatencyBenchmark {
     private void start() {
       clusterNode = ClusterNode.launch();
       clusterClient = ClusterClient.launch(this);
-      reporter = LatencyReporter.launch(ClusterLatencyBenchmark.class);
+      reporter = RateReporter.launch(ClusterThroughputBenchmark.class);
       Agent senderAgent = new SenderAgent(clusterClient.client());
       Agent receiverAgent = new ReceiverAgent(clusterClient.client());
       senderReceiverRunner = SenderReceiverAgentRunner.launch(senderAgent, receiverAgent);
@@ -59,9 +61,7 @@ public class ClusterLatencyBenchmark {
         int offset,
         int length,
         Header header) {
-      long start = buffer.getLong(offset);
-      long diff = System.nanoTime() - start;
-      reporter.onDiff(diff);
+      reporter.onMessage(1, length);
     }
 
     @Override
@@ -85,7 +85,6 @@ public class ClusterLatencyBenchmark {
 
       @Override
       public int doWork() {
-        offerBuffer.putLong(0, System.nanoTime());
         long result = client.offer(offerBuffer, 0, MESSAGE_LENGTH);
         if (result > 0) {
           return 1;

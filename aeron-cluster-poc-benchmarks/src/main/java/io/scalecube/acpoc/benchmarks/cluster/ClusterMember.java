@@ -1,6 +1,7 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.ChannelUriStringBuilder;
+import io.scalecube.acpoc.benchmarks.Runners;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;

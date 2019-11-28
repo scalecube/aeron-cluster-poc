@@ -1,12 +1,14 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.archive;
 
+import io.scalecube.acpoc.benchmarks.Runners;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 import org.openjdk.jmh.runner.options.VerboseMode;
 
-public class ClusterJmhRunner {
+public class AeronEventJmhRunner {
 
   /**
    * Main method.
@@ -17,7 +19,7 @@ public class ClusterJmhRunner {
   public static void main(String[] args) throws RunnerException {
     OptionsBuilder optionsBuilder = new OptionsBuilder();
     if (Runners.asyncProfilerEnabled()) {
-      optionsBuilder.jvmArgsPrepend(Runners.asyncProfilerAgentString(ClusterJmhRunner.class));
+      optionsBuilder.jvmArgsPrepend(Runners.asyncProfilerAgentString(AeronEventJmhRunner.class));
     }
     Options options =
         optionsBuilder
@@ -26,11 +28,11 @@ public class ClusterJmhRunner {
             .threads(1)
             .verbosity(VerboseMode.NORMAL)
             .warmupIterations(Runners.warmupIterations())
-            .warmupTime(Runners.warmupTime())
+            .warmupTime(TimeValue.milliseconds(Runners.warmupTime().toMillis()))
             .measurementIterations(Runners.measurementIterations())
-            .measurementTime(Runners.measurementTime())
-            .result(Runners.resultFilename(ClusterJmhRunner.class))
-            .include(Runners.includeBenchmarks("acpoc.benchmarks.*.*Benchmark"))
+            .measurementTime(TimeValue.milliseconds(Runners.measurementTime().toMillis()))
+            .result(Runners.resultFilename(AeronEventJmhRunner.class))
+            .include(Runners.includeBenchmarks("benchmarks.aeron.event.*.*Benchmark"))
             .shouldFailOnError(true)
             .build();
     new Runner(options).run();

@@ -1,4 +1,4 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.Image;
 import io.aeron.Publication;

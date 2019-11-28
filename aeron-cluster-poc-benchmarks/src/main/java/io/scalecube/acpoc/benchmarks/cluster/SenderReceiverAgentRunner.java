@@ -1,4 +1,4 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import static java.lang.System.getProperty;
 

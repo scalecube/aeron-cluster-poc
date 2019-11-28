@@ -1,4 +1,4 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;

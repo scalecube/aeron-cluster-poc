@@ -1,4 +1,4 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.CommonContext;
 import io.aeron.cluster.client.AeronCluster;
@@ -6,6 +6,7 @@ import io.aeron.cluster.client.AeronCluster.AsyncConnect;
 import io.aeron.cluster.client.EgressListener;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
+import io.scalecube.acpoc.benchmarks.Runners;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;

@@ -3,12 +3,12 @@ package io.scalecube.acpoc.benchmarks;
 import io.scalecube.net.Address;
 import java.io.File;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-import org.openjdk.jmh.runner.options.TimeValue;
 
 public class Runners {
 
@@ -106,16 +106,16 @@ public class Runners {
     return Integer.getInteger(WARMUP_ITERATIONS_PROP_NAME, DEFAULT_WARMUP_ITERATIONS);
   }
 
-  public static TimeValue warmupTime() {
-    return TimeValue.seconds(Long.getLong(WARMUP_TIME_SEC_PROP_NAME, DEFAULT_WARMUP_TIME_SEC));
+  public static Duration warmupTime() {
+    return Duration.ofSeconds(Long.getLong(WARMUP_TIME_SEC_PROP_NAME, DEFAULT_WARMUP_TIME_SEC));
   }
 
   public static int measurementIterations() {
     return Integer.getInteger(MEASUREMENT_ITERATIONS_PROP_NAME, DEFAULT_MEASUREMENT_ITERATIONS);
   }
 
-  public static TimeValue measurementTime() {
-    return TimeValue.seconds(
+  public static Duration measurementTime() {
+    return Duration.ofSeconds(
         Long.getLong(MEASUREMENT_TIME_SEC_PROP_NAME, DEFAULT_MEASUREMENT_TIME));
   }
 

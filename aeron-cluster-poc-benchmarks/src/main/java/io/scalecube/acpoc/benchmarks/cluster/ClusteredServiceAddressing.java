@@ -1,4 +1,4 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.cluster;
 
 import io.aeron.ChannelUriStringBuilder;
 import io.aeron.cluster.ConsensusModule.Configuration;
