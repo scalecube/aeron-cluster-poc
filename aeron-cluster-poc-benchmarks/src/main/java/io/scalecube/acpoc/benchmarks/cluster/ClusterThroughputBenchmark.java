@@ -23,8 +23,9 @@ public class ClusterThroughputBenchmark {
    */
   public static void main(String[] args) throws Exception {
     try (State state = new State()) {
-      TimeUnit.SECONDS.sleep(Runners.warmupTime().getTime() * Runners.warmupIterations());
-      TimeUnit.SECONDS.sleep(Runners.measurementTime().getTime() * Runners.measurementIterations());
+      TimeUnit.MILLISECONDS.sleep(Runners.warmupTime().toMillis() * Runners.warmupIterations());
+      TimeUnit.MILLISECONDS.sleep(
+          Runners.measurementTime().toMillis() * Runners.measurementIterations());
     }
   }
 

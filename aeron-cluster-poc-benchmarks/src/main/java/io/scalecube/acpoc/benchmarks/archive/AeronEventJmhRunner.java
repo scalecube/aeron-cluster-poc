@@ -32,7 +32,7 @@ public class AeronEventJmhRunner {
             .measurementIterations(Runners.measurementIterations())
             .measurementTime(TimeValue.milliseconds(Runners.measurementTime().toMillis()))
             .result(Runners.resultFilename(AeronEventJmhRunner.class))
-            .include(Runners.includeBenchmarks("benchmarks.aeron.event.*.*Benchmark"))
+            .include(Runners.includeBenchmarks("acpoc.benchmarks.archive.*.*Benchmark"))
             .shouldFailOnError(true)
             .build();
     new Runner(options).run();

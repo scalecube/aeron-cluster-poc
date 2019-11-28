@@ -1,14 +1,11 @@
 package io.scalecube.acpoc.benchmarks;
 
 import io.scalecube.net.Address;
-import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.openjdk.jmh.annotations.Threads;
-import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 
 public class Runners {
 
@@ -22,20 +19,19 @@ public class Runners {
   public static final String THREADS_PROP_NAME = "threads";
   public static final String JVM_ARGS_PROP_NAME = "jvmArgs";
 
-  public static final String DEFAULT_RESULTS_DIR = "target/jmh";
+  public static final String DEFAULT_RESULTS_DIR = "target/results";
   public static final int DEFAULT_FORKS = 1;
   public static final int DEFAULT_WARMUP_ITERATIONS = 3;
   public static final long DEFAULT_WARMUP_TIME_SEC = 5;
   public static final int DEFAULT_MEASUREMENT_ITERATIONS = 5;
   public static final long DEFAULT_MEASUREMENT_TIME = 15;
-  public static final int DEFAULT_THREADS = Threads.MAX;
+  public static final int DEFAULT_THREADS = -1; // Threads.MAX
   public static final String DEFAULT_ASYNC_PROFILER_EVENT = "cpu"; // cache-misses, alloc, lock
 
-  public static final String ASYNC_PROFILER_AGENT_FORMAT =
-      "-agentpath:profiler/libasyncProfiler.so=start,threads,svg=total,event=%s,file=%s";
-  public static final String ASYNC_PROFILER_RESULT_FILENAME_FORMAT = "%s/profile-%s-%s.svg";
   public static final String ASYNC_PROFILER_ENABLED_PROP_NAME = "asyncProfiler.enabled";
   public static final String ASYNC_PROFILER_EVENT_PROP_NAME = "asyncProfiler.event";
+  public static final String ASYNC_PROFILER_AGENT_FORMAT =
+      "-agentpath:profiler/libasyncProfiler.so=start,threads,svg=total,event=%s,file=%s";
 
   public static final int MESSAGE_LENGTH = Integer.getInteger("benchmark.message.length", 256);
 
@@ -58,8 +54,7 @@ public class Runners {
   }
 
   /**
-   * Retrurns boolean indicating is async profiler enabled (and thus string for jvm agent path must
-   * be formed, see also: {@link #asyncProfilerAgentString(Class)}).
+   * Retrurns boolean indicating whether async profiler is enabled.
    *
    * @return true or false; by default false.
    */
@@ -68,28 +63,30 @@ public class Runners {
   }
 
   /**
-   * Returns profiler string for agentpath to set {@link ChainedOptionsBuilder#jvmArgs(String...)}.
+   * Returns profiler string for agentpath to set {@code ChainedOptionsBuilder#jvmArgs(String...)}.
    *
    * @param clazz clazz
    * @return agent path string
    */
   public static String asyncProfilerAgentString(Class<?> clazz) {
     return String.format(
-        ASYNC_PROFILER_AGENT_FORMAT, asyncProfilerEvent(), asyncProfilerResultFilename(clazz));
+        ASYNC_PROFILER_AGENT_FORMAT,
+        asyncProfilerEvent(),
+        asyncProfilerResultFilename(clazz.getSimpleName()));
   }
 
   /**
-   * Returns result filename to set {@link ChainedOptionsBuilder#result(String)}.
+   * Returns result filename to set {@code ChainedOptionsBuilder#result(java.lang.String)}.
    *
    * @param clazz clazz
    * @return result filename
    */
   public static String resultFilename(Class<?> clazz) {
-    return Paths.get(resultsDir(), clazz.getSimpleName() + ".jmh.csv").toString();
+    return Paths.get(getResultsDirName(), clazz.getSimpleName() + ".csv").toString();
   }
 
   /**
-   * Returns include regexp string to set {@link ChainedOptionsBuilder#include(String)}.
+   * Returns include regexp string to set {@code ChainedOptionsBuilder#include(String)}.
    *
    * @param defaultValue default value
    * @return include regexp string
@@ -123,19 +120,13 @@ public class Runners {
     return Integer.getInteger(THREADS_PROP_NAME, DEFAULT_THREADS);
   }
 
-  private static String resultsDir() {
-    String resultsDir = System.getProperty(RESULTS_DIR_PROP_NAME, DEFAULT_RESULTS_DIR);
-    //noinspection ResultOfMethodCallIgnored
-    new File(resultsDir).mkdirs();
-    return resultsDir;
+  private static String asyncProfilerResultFilename(String name) {
+    return Paths.get(getResultsDirName(), name + "-" + asyncProfilerEvent() + "-%p-%t.svg")
+        .toString();
   }
 
-  private static String asyncProfilerResultFilename(Class<?> clazz) {
-    return String.format(
-        ASYNC_PROFILER_RESULT_FILENAME_FORMAT,
-        resultsDir(),
-        clazz.getSimpleName(),
-        asyncProfilerEvent());
+  private static String getResultsDirName() {
+    return System.getProperty(RESULTS_DIR_PROP_NAME, DEFAULT_RESULTS_DIR);
   }
 
   private static String asyncProfilerEvent() {
@@ -148,11 +139,11 @@ public class Runners {
    * @return jvmArgs
    */
   public static String[] jvmArgs() {
-    String property = System.getenv("JAVA_OPTS");
-    if (property == null) {
-      property = System.getProperty(JVM_ARGS_PROP_NAME, "");
+    String value = System.getenv("JAVA_OPTS");
+    if (value == null) {
+      value = System.getProperty(JVM_ARGS_PROP_NAME, "");
     }
-    return Arrays.stream(property.split("\\s")).filter(s -> !s.isEmpty()).toArray(String[]::new);
+    return Arrays.stream(value.split("\\s")).filter(s -> !s.isEmpty()).toArray(String[]::new);
   }
 
   /**

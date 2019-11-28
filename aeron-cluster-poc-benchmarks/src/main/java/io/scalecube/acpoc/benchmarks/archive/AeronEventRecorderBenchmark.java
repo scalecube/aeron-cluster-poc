@@ -42,7 +42,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Threads(1)
 @Warmup(iterations = 3, time = 5)
 @Measurement(iterations = 5, time = 15)
-public class AeronOrderEventRecorderBenchmark {
+public class AeronEventRecorderBenchmark {
 
   private static final int OPERATIONS_PER_INVOCATION = 1000;
 
