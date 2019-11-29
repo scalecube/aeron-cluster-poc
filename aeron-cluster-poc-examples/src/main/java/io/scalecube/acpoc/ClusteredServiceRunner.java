@@ -89,8 +89,8 @@ public class ClusteredServiceRunner {
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              CloseHelper.close(clusteredMediaDriver);
               CloseHelper.close(clusteredServiceContainer);
+              CloseHelper.close(clusteredMediaDriver);
               return null;
             });
     onShutdown.block();
