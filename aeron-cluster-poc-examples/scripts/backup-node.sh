@@ -22,4 +22,4 @@ java \
 -Dio.scalecube.acpoc.instanceId=n4 \
 -Dio.scalecube.acpoc.cleanStart=false \
 -Dio.scalecube.acpoc.cleanShutdown=false \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusteredServiceRunner
+  ${JVM_OPTS} io.scalecube.acpoc.ClusterBackupRunner
