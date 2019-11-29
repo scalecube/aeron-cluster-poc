@@ -4,6 +4,8 @@ import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
 import io.aeron.logbuffer.Header;
+import io.scalecube.acpoc.benchmarks.report.throughput.CsvReportingThroughputListener;
+import io.scalecube.acpoc.benchmarks.report.throughput.ThroughputReporter;
 import java.util.concurrent.TimeUnit;
 import org.agrona.BitUtil;
 import org.agrona.BufferUtil;
@@ -31,7 +33,7 @@ public class ClusterThroughputBenchmark {
     private ClusterNode clusterNode;
     private ClusterClient clusterClient;
     private SenderReceiverAgentRunner senderReceiverRunner;
-    private RateReporter reporter;
+    private ThroughputReporter reporter;
 
     State() {
       try {
@@ -45,7 +47,9 @@ public class ClusterThroughputBenchmark {
     private void start() {
       clusterNode = ClusterNode.launch();
       clusterClient = ClusterClient.launch(this);
-      reporter = RateReporter.launch(ClusterThroughputBenchmark.class);
+      reporter =
+          ThroughputReporter.launch(
+              new CsvReportingThroughputListener(ClusterThroughputBenchmark.class));
       Agent senderAgent = new SenderAgent(clusterClient.client());
       Agent receiverAgent = new ReceiverAgent(clusterClient.client());
       senderReceiverRunner = SenderReceiverAgentRunner.launch(senderAgent, receiverAgent);

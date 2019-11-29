@@ -1,9 +1,13 @@
 package io.scalecube.acpoc.benchmarks;
 
+import io.aeron.Counter;
 import io.aeron.Publication;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.cluster.client.EgressListener;
 import io.aeron.logbuffer.Header;
+import io.scalecube.acpoc.benchmarks.report.latency.ConsoleReportingLatencyListener;
+import io.scalecube.acpoc.benchmarks.report.latency.CsvReportingLatencyListener;
+import io.scalecube.acpoc.benchmarks.report.latency.LatencyReporter;
 import java.util.concurrent.TimeUnit;
 import org.agrona.BitUtil;
 import org.agrona.BufferUtil;
@@ -30,6 +34,7 @@ public class ClusterLatencyBenchmark {
 
     private ClusterNode clusterNode;
     private ClusterClient clusterClient;
+    private Counter requested;
     private SenderReceiverAgentRunner senderReceiverRunner;
     private LatencyReporter reporter;
 
@@ -45,8 +50,12 @@ public class ClusterLatencyBenchmark {
     private void start() {
       clusterNode = ClusterNode.launch();
       clusterClient = ClusterClient.launch(this);
-      reporter = LatencyReporter.launch(ClusterLatencyBenchmark.class);
-      Agent senderAgent = new SenderAgent(clusterClient.client());
+      requested = clusterClient.client().context().aeron().addCounter(404, "requested");
+      reporter =
+          LatencyReporter.launch(
+              new ConsoleReportingLatencyListener(),
+              new CsvReportingLatencyListener(ClusterLatencyBenchmark.class));
+      Agent senderAgent = new SenderAgent(clusterClient.client(), requested);
       Agent receiverAgent = new ReceiverAgent(clusterClient.client());
       senderReceiverRunner = SenderReceiverAgentRunner.launch(senderAgent, receiverAgent);
     }
@@ -61,12 +70,14 @@ public class ClusterLatencyBenchmark {
         Header header) {
       long start = buffer.getLong(offset);
       long diff = System.nanoTime() - start;
+      this.requested.getAndAddOrdered(-1);
       reporter.onDiff(diff);
     }
 
     @Override
     public void close() {
-      CloseHelper.quietCloseAll(reporter, senderReceiverRunner, clusterClient, clusterNode);
+      CloseHelper.quietCloseAll(
+          reporter, senderReceiverRunner, requested, clusterClient, clusterNode);
     }
 
     private static class SenderAgent implements Agent {
@@ -75,22 +86,29 @@ public class ClusterLatencyBenchmark {
 
       private final AeronCluster client;
       private final UnsafeBuffer offerBuffer;
+      private final Counter requested;
 
-      private SenderAgent(AeronCluster client) {
+      private SenderAgent(AeronCluster client, Counter requested) {
         this.client = client;
         this.offerBuffer =
             new UnsafeBuffer(
                 BufferUtil.allocateDirectAligned(MESSAGE_LENGTH, BitUtil.CACHE_LINE_LENGTH));
+        this.requested = requested;
       }
 
       @Override
       public int doWork() {
-        offerBuffer.putLong(0, System.nanoTime());
-        long result = client.offer(offerBuffer, 0, MESSAGE_LENGTH);
-        if (result > 0) {
-          return 1;
+        long produced = requested.get();
+        if (produced <= Runners.ROUND_TRIP_MESSAGES_COUNT) {
+          offerBuffer.putLong(0, System.nanoTime());
+          long result = client.offer(offerBuffer, 0, MESSAGE_LENGTH);
+          if (result > 0) {
+            requested.incrementOrdered();
+            return 1;
+          }
+          checkResult(result);
+          return (int) result;
         }
-        checkResult(result);
         return 0;
       }
 
