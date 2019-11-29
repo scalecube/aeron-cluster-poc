@@ -215,7 +215,7 @@ public class ClusteredServiceImpl implements ClusteredService {
     ToggleState newToggleState = ToggleState.get(controlToggle);
     logger.info(
         "ToggleState changed {}: {}->{}",
-        result ? "successfully" : "unsuccessfullyC",
+        result ? "successfully" : "unsuccessfully",
         oldToggleState,
         newToggleState);
   }
