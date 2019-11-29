@@ -13,8 +13,10 @@ java \
   -cp target/${JAR_FILE}:target/lib/* \
   -XX:+UnlockDiagnosticVMOptions \
   -XX:GuaranteedSafepointInterval=300000 \
-  -Daeron.threading.mode=SHARED \
   -Dagrona.disable.bounds.checks=true \
+  -Daeron.dir=/dev/shm/aeron-pong-1 \
+  -Daeron.threading.mode=SHARED \
+  -Daeron.archive.threading.mode=SHARED \
   -Daeron.mtu.length=8k \
   -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8011" \
   -Daeron.archive.control.stream.id="100" \

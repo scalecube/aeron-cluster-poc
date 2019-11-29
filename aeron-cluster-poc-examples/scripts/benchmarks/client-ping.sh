@@ -11,6 +11,7 @@ java \
   -cp target/${JAR_FILE}:target/lib/* \
   -XX:+UnlockDiagnosticVMOptions \
   -XX:GuaranteedSafepointInterval=300000 \
+  -Daeron.dir=/dev/shm/aeron-client-ping-0 \
   -Daeron.threading.mode=SHARED \
   -Dagrona.disable.bounds.checks=true \
   -Daeron.mtu.length=16k \
