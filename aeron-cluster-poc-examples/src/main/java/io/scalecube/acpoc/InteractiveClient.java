@@ -60,6 +60,7 @@ public class InteractiveClient {
             "Type request body and press enter to send to Aeron cluster. Q to quit... ");
         String payload = scanner.nextLine();
         if ("Q".equals(payload)) {
+          client.close();
           break;
         }
         stringSender.accept(payload, client);
