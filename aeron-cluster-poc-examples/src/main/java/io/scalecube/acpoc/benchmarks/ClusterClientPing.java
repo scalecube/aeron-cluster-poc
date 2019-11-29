@@ -1,12 +1,9 @@
 package io.scalecube.acpoc.benchmarks;
 
-import io.aeron.CommonContext;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MediaDriver.Context;
 import io.aeron.logbuffer.Header;
-import io.scalecube.acpoc.Utils;
-import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import org.HdrHistogram.Recorder;
 import org.agrona.BitUtil;
@@ -39,15 +36,9 @@ public class ClusterClientPing {
    * @param args program arguments.
    */
   public static void main(String[] args) throws InterruptedException {
-    String clientId = "client-benchmark" + Utils.instanceId();
-    String clientDirName =
-        Paths.get(CommonContext.getAeronDirectoryName(), "aeron", "cluster", clientId).toString();
-    System.out.println("Cluster client directory: " + clientDirName);
-
     try (MediaDriver clientMediaDriver =
             MediaDriver.launch(
                 new Context()
-                    .aeronDirectoryName(clientDirName)
                     .warnIfDirectoryExists(true)
                     .dirDeleteOnStart(true)
                     .dirDeleteOnShutdown(true)

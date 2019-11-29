@@ -1,6 +1,5 @@
 package io.scalecube.acpoc.benchmarks;
 
-import io.aeron.CommonContext;
 import io.aeron.archive.Archive;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
@@ -39,14 +38,8 @@ public class ClusteredServiceRunner {
 
     System.out.println("Cluster node directory: " + nodeDirName);
 
-    String aeronDirectoryName = Paths.get(CommonContext.getAeronDirectoryName(), nodeId).toString();
-
-    AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(aeronDirectoryName);
-
     MediaDriver.Context mediaDriverContest =
         new MediaDriver.Context()
-            .aeronDirectoryName(aeronDirectoryName)
             .warnIfDirectoryExists(true)
             .dirDeleteOnStart(true)
             .dirDeleteOnShutdown(true)
@@ -54,11 +47,14 @@ public class ClusteredServiceRunner {
             .errorHandler(Throwable::printStackTrace)
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
+    AeronArchive.Context aeronArchiveContext =
+        new AeronArchive.Context().aeronDirectoryName(mediaDriverContest.aeronDirectoryName());
+
     Archive.Context archiveContext =
         new Archive.Context()
             .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
             .deleteArchiveOnStart(true)
-            .aeronDirectoryName(aeronDirectoryName)
+            .aeronDirectoryName(mediaDriverContest.aeronDirectoryName())
             .archiveDir(new File(nodeDirName, "archive"))
             .controlChannel(aeronArchiveContext.controlRequestChannel())
             .controlStreamId(aeronArchiveContext.controlRequestStreamId())
@@ -68,7 +64,7 @@ public class ClusteredServiceRunner {
     ConsensusModule.Context consensusModuleCtx =
         new ConsensusModule.Context()
             .errorHandler(Throwable::printStackTrace)
-            .aeronDirectoryName(aeronDirectoryName)
+            .aeronDirectoryName(mediaDriverContest.aeronDirectoryName())
             .clusterDir(new File(nodeDirName, "consensus-module"))
             .archiveContext(aeronArchiveContext.clone());
 
@@ -78,7 +74,7 @@ public class ClusteredServiceRunner {
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()
             .errorHandler(Throwable::printStackTrace)
-            .aeronDirectoryName(aeronDirectoryName)
+            .aeronDirectoryName(clusteredMediaDriver.mediaDriver().aeronDirectoryName())
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(nodeDirName, "service"))
             .clusteredService(new BenchmarkClusteredService());

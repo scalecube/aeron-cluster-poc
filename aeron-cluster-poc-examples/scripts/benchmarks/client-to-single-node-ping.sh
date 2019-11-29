@@ -19,6 +19,7 @@ java \
   -Daeron.socket.so_sndbuf=2m \
   -Daeron.socket.so_rcvbuf=2m \
   -Daeron.rcv.initial.window.length=2m \
+  -Daeron.dir=/dev/shm/aeron-client-single-ping-0 \
   -Daeron.threading.mode=DEDICATED \
   -Daeron.shared.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \
   -Daeron.sharednetwork.idle.strategy=org.agrona.concurrent.BusySpinIdleStrategy \

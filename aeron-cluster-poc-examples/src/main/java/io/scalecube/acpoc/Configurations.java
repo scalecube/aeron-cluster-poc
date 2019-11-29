@@ -1,11 +1,6 @@
 package io.scalecube.acpoc;
 
-import java.time.Duration;
-
 public class Configurations {
-
-  public static final Duration SNAPSHOT_PERIOD =
-      Duration.ofSeconds(Integer.getInteger("io.scalecube.acpoc.snapshotPeriodSecs", 20));
 
   public static final long MAX_CATALOG_ENTRIES = 1024;
 

@@ -3,9 +3,7 @@ package io.scalecube.acpoc;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.DefaultAllowTerminationValidator;
 import io.aeron.driver.MediaDriver;
-import io.aeron.driver.ThreadingMode;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.time.Duration;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -26,28 +24,22 @@ public class ClusterClientRunner {
    * @param args program arguments.
    */
   public static void main(String[] args) {
-    String clientId = "client-" + Utils.instanceId();
-    String clientDirName = Paths.get("target", "aeron", "cluster", clientId).toString();
-
-    System.out.println("Cluster client directory: " + clientDirName);
-
     MediaDriver clientMediaDriver =
         MediaDriver.launch(
             new MediaDriver.Context()
                 .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
                 .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
                 .terminationValidator(new DefaultAllowTerminationValidator())
-                .threadingMode(ThreadingMode.SHARED)
                 .warnIfDirectoryExists(true)
                 .dirDeleteOnStart(true)
-                .aeronDirectoryName(clientDirName));
+                .dirDeleteOnShutdown(true));
 
     AeronCluster client =
         AeronCluster.connect(
             new AeronCluster.Context()
                 .errorHandler(ex -> logger.error("Exception occurred at AeronCluster: ", ex))
                 .egressListener(new EgressListenerImpl())
-                .aeronDirectoryName(clientDirName)
+                .aeronDirectoryName(clientMediaDriver.aeronDirectoryName())
                 .ingressChannel("aeron:udp"));
 
     Disposable sender =

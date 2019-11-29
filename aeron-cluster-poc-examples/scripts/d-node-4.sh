@@ -9,6 +9,9 @@ echo $JAR_FILE
 
 java \
   -cp target/${JAR_FILE}:target/lib/* \
+-Daeron.dir=/dev/shm/aeron-d4 \
+-Daeron.threading.mode=SHARED \
+-Daeron.archive.threading.mode=SHARED \
 -Daeron.cluster.member.id="-1" \
 -Daeron.cluster.members="" \
 -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8014" \
