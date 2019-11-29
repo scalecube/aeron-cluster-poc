@@ -38,6 +38,8 @@ public class Runners {
   public static final String ASYNC_PROFILER_EVENT_PROP_NAME = "asyncProfiler.event";
 
   public static final int MESSAGE_LENGTH = Integer.getInteger("benchmark.message.length", 256);
+  public static final long ROUND_TRIP_MESSAGES_COUNT =
+      Long.getLong("benchmark.round.trip.messages.count", 1);
 
   public static final String SEEDS_PROPERTY = "benchmark.seeds";
   public static final String DEFAULT_SEEDS = "localhost:4801";

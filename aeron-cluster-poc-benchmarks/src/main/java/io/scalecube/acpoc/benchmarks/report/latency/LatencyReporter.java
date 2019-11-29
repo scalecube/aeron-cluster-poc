@@ -1,9 +1,11 @@
-package io.scalecube.acpoc.benchmarks;
+package io.scalecube.acpoc.benchmarks.report.latency;
 
+import io.scalecube.acpoc.benchmarks.Runners;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.HdrHistogram.Histogram;
 import org.HdrHistogram.Recorder;
+import org.agrona.CloseHelper;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -14,14 +16,22 @@ public class LatencyReporter implements AutoCloseable {
   private final Disposable disposable;
 
   private Histogram accumulatedHistogram;
-  private boolean warmupFinished = false;
 
-  public static LatencyReporter launch(Class benchmarkClass) {
-    return new LatencyReporter();
+  private boolean warmupFinished = false;
+  private final LatencyListener listener;
+
+  /**
+   * Launch this test reporter.
+   *
+   * @param listeners throughput listeners
+   * @return a reporter
+   */
+  public static LatencyReporter launch(LatencyListener... listeners) {
+    return new LatencyReporter(new CompositeReportingLatencyListener(listeners));
   }
 
-  /** Create latency reporter. */
-  private LatencyReporter() {
+  private LatencyReporter(LatencyListener listener) {
+    this.listener = listener;
     this.histogram = new Recorder(TimeUnit.SECONDS.toNanos(10), 3);
     Duration reportDelay =
         Duration.ofSeconds(
@@ -41,9 +51,8 @@ public class LatencyReporter implements AutoCloseable {
       } else {
         accumulatedHistogram = intervalHistogram;
       }
-      System.err.println("---- INTERVAL HISTOGRAM ----");
-      intervalHistogram.outputPercentileDistribution(System.err, 5, 1000.0, false);
-      System.err.println("---- INTERVAL HISTOGRAM ----");
+
+      listener.onReport(intervalHistogram);
     } else {
       warmupFinished = true;
       histogram.reset();
@@ -51,9 +60,7 @@ public class LatencyReporter implements AutoCloseable {
   }
 
   private void onTerminate() {
-    System.err.println("---- ACCUMULATED HISTOGRAM ----");
-    accumulatedHistogram.outputPercentileDistribution(System.err, 5, 1000.0, false);
-    System.err.println("---- ACCUMULATED HISTOGRAM ----");
+    listener.onTerminate(accumulatedHistogram);
   }
 
   public void onDiff(long diff) {
@@ -64,5 +71,6 @@ public class LatencyReporter implements AutoCloseable {
   public void close() {
     disposable.dispose();
     histogram.reset();
+    CloseHelper.quietClose(listener);
   }
 }
