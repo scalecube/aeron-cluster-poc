@@ -85,8 +85,8 @@ public class ClusteredServiceRunner {
     Mono<Void> onShutdown =
         Utils.onShutdown(
             () -> {
-              CloseHelper.quietClose(clusteredMediaDriver);
               CloseHelper.quietClose(clusteredServiceContainer);
+              CloseHelper.quietClose(clusteredMediaDriver);
               if (Configurations.CLEAN_SHUTDOWN) {
                 IoUtil.delete(new File(nodeDirName), true);
               }
