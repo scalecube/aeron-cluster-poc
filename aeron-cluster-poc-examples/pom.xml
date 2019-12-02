@@ -22,11 +22,25 @@
     </dependency>
     <dependency>
       <groupId>io.aeron</groupId>
+      <artifactId>aeron-agent</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.aeron</groupId>
       <artifactId>aeron-samples</artifactId>
     </dependency>
     <dependency>
       <groupId>io.aeron</groupId>
       <artifactId>aeron-cluster</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
     </dependency>
 
     <!-- Reactor Core -->
