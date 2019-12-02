@@ -17,7 +17,7 @@ java \
 -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8013" \
 -Daeron.archive.control.stream.id="100" \
 -Daeron.archive.control.response.channel="aeron:udp?term-length=64k|endpoint=localhost:8023" \
--Daeron.archive.control.response.stream.id="103" \
+-Daeron.archive.control.response.stream.id="113" \
 -Daeron.archive.recording.events.channel="aeron:udp?control-mode=dynamic|control=localhost:8033" \
 -Daeron.archive.local.control.channel="aeron:ipc?term-length=64k" \
 -Daeron.cluster.member.endpoints="localhost:20113,localhost:20223,localhost:20333,localhost:20443,localhost:8013" \

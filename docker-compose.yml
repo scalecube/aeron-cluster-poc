@@ -1,0 +1,67 @@
+version: '3.7'
+services:
+  node0:
+    build: .
+    ports:
+      - "20110:20110"
+      - "20120:20120"
+      - "20130:20130"
+      - "20140:20140"
+      - "20150:20150"
+      - "8010:8010"
+    volumes:
+      - aeron-fs0:/app/target/aeron/cluster
+    environment:
+      - NUMBER=0
+    networks:
+      app_net:
+        ipv4_address: 10.5.0.31
+
+  node1:
+    build: .
+    ports:
+      - "20111:20111"
+      - "20121:20121"
+      - "20131:20131"
+      - "20141:20141"
+      - "20151:20151"
+      - "8011:8011"
+    volumes:
+      - aeron-fs1:/app/target/aeron/cluster
+    environment:
+      - NUMBER=1
+    networks:
+      app_net:
+        ipv4_address: 10.5.0.41
+
+  node2:
+    build: .
+    ports:
+      - "20112:20112"
+      - "20122:20122"
+      - "20132:20132"
+      - "20142:20142"
+      - "20152:20152"
+      - "8012:8012"
+    volumes:
+      - aeron-fs2:/app/target/aeron/cluster
+    environment:
+      - NUMBER=2
+    networks:
+      app_net:
+        ipv4_address: 10.5.0.51
+
+
+networks:
+  app_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.5.0.0/24
+#          gateway: 10.5.0.1
+
+
+volumes:
+  aeron-fs0:
+  aeron-fs1:
+  aeron-fs2:

@@ -67,6 +67,23 @@
         <artifactId>aeron-cluster</artifactId>
         <version>${aeron.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.aeron</groupId>
+        <artifactId>aeron-agent</artifactId>
+        <version>${aeron.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>1.9.10</version>
+      </dependency>
+
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-agent</artifactId>
+        <version>1.9.10</version>
+      </dependency>
 
       <!-- Jmh -->
       <dependency>

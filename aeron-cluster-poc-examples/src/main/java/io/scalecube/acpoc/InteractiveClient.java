@@ -30,9 +30,7 @@ public class InteractiveClient {
         byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
         UnsafeBuffer buffer = new UnsafeBuffer(bytes);
         long l = client.offer(buffer, 0, bytes.length);
-        if (l > 0) {
-          logger.info("Client: REQUEST '{}' sent, result={}", str, l);
-        }
+        logger.info("Client: REQUEST '{}' sent, result={}", str, l);
       };
 
   /**
@@ -72,9 +70,9 @@ public class InteractiveClient {
   private static Callable shutdownHook() {
     return () -> {
       System.out.println("Shutting down");
-      receiver.dispose();
       CloseHelper.close(client);
       CloseHelper.close(clientMediaDriver);
+      receiver.dispose();
       return null;
     };
   }
@@ -98,5 +96,6 @@ public class InteractiveClient {
                 .aeronDirectoryName(clientMediaDriver.aeronDirectoryName())
                 .ingressChannel("aeron:udp"));
     System.out.println("Client started.");
+    logger.debug("client: {}", client.context().clusterMemberEndpoints());
   }
 }
