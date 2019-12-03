@@ -1,5 +1,8 @@
 package io.scalecube.acpoc;
 
+import static io.scalecube.acpoc.Configurations.CLEAN_SHUTDOWN;
+import static io.scalecube.acpoc.Configurations.CLEAN_START;
+
 import io.aeron.archive.Archive;
 import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.client.AeronArchive;
@@ -30,7 +33,7 @@ public class ClusterBackupRunner {
     String nodeId = "cluster-backup-" + Utils.instanceId();
     String nodeDirName = Paths.get("target", "aeron", "cluster", nodeId).toString();
 
-    if (Configurations.CLEAN_START) {
+    if (CLEAN_START) {
       IoUtil.delete(new File(nodeDirName), true);
     }
 
@@ -69,8 +72,7 @@ public class ClusterBackupRunner {
             .aeronDirectoryName(aeronDirectoryName)
             .archiveContext(aeronArchiveContext.clone())
             .clusterDir(new File(nodeDirName, "cluster-backup"))
-            .eventsListener(new ClusterBackupEventsListenerImpl())
-            .deleteDirOnStart(true);
+            .eventsListener(new ClusterBackupEventsListenerImpl());
 
     ClusterBackupMediaDriver clusterBackupMediaDriver =
         ClusterBackupMediaDriver.launch(mediaDriverContext, archiveContext, clusterBackupContext);
@@ -79,7 +81,7 @@ public class ClusterBackupRunner {
         Utils.onShutdown(
             () -> {
               CloseHelper.close(clusterBackupMediaDriver);
-              if (Configurations.CLEAN_SHUTDOWN) {
+              if (CLEAN_SHUTDOWN) {
                 IoUtil.delete(new File(nodeDirName), true);
               }
               return null;
