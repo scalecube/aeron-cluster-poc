@@ -16,6 +16,7 @@ services:
     networks:
       app_net:
         ipv4_address: 10.5.0.31
+    shm_size: '1gb'
 
   node1:
     build: .
@@ -33,6 +34,7 @@ services:
     networks:
       app_net:
         ipv4_address: 10.5.0.41
+    shm_size: '1gb'
 
   node2:
     build: .
@@ -50,6 +52,7 @@ services:
     networks:
       app_net:
         ipv4_address: 10.5.0.51
+    shm_size: '1gb'
 
 
 networks:
