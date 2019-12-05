@@ -8,8 +8,8 @@ JAR_FILE=$(ls target |grep jar)
 echo $JAR_FILE
 
 java \
-  -cp target/${JAR_FILE}:target/lib/* \
-  -Daeron.dir=/dev/shm/aeron-client-interactive-0 \
-  -Daeron.threading.mode=SHARED \
-  -Daeron.cluster.member.endpoints="0=localhost:20110,1=localhost:20111,2=localhost:20112" \
-  ${JVM_OPTS} io.scalecube.acpoc.InteractiveClient
+-cp target/${JAR_FILE}:target/lib/* \
+-Daeron.dir=/dev/shm/aeron-client-interactive-0 \
+-Daeron.threading.mode=SHARED \
+-Daeron.cluster.member.endpoints="1=localhost:20113" \
+${JVM_OPTS} io.scalecube.acpoc.InteractiveClient

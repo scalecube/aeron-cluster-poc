@@ -8,7 +8,7 @@ JAR_FILE=$(ls target |grep jar)
 echo $JAR_FILE
 
 java \
-  -cp target/${JAR_FILE}:target/lib/* \
+-cp target/${JAR_FILE}:target/lib/* \
 -Dnetworkaddress.cache.ttl=0 \
 -Dnetworkaddress.cache.negative.ttl=0 \
 -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=node1:8011" \
@@ -27,4 +27,4 @@ java \
 -Dio.scalecube.acpoc.cleanStart=false \
 -Dio.scalecube.acpoc.cleanShutdown=false \
 -Dio.scalecube.acpoc.snapshotPeriodSecs=99999 \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusteredServiceRunner
+${JVM_OPTS} io.scalecube.acpoc.ClusteredServiceRunner

@@ -8,7 +8,7 @@ JAR_FILE=$(ls target |grep jar)
 echo $JAR_FILE
 
 java \
-  -cp target/${JAR_FILE}:target/lib/* \
+-cp target/${JAR_FILE}:target/lib/* \
 -Daeron.archive.control.channel="aeron:udp?term-length=64k|endpoint=localhost:8014" \
 -Daeron.archive.control.stream.id=100 \
 -Daeron.archive.control.response.channel="aeron:udp?term-length=64k|endpoint=localhost:8024" \
@@ -22,4 +22,4 @@ java \
 -Dio.scalecube.acpoc.instanceId=n4 \
 -Dio.scalecube.acpoc.cleanStart=false \
 -Dio.scalecube.acpoc.cleanShutdown=false \
-  ${JVM_OPTS} io.scalecube.acpoc.ClusterBackupRunner
+${JVM_OPTS} io.scalecube.acpoc.ClusterBackupRunner
