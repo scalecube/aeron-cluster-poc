@@ -10,6 +10,7 @@ echo $JAR_FILE
 java \
 -cp target/${JAR_FILE}:target/lib/* \
 -Daeron.dir=/dev/shm/aeron-d3 \
+-Dio.scalecube.acpoc.instanceId=d3 \
 -Daeron.threading.mode=SHARED \
 -Daeron.archive.threading.mode=SHARED \
 -Daeron.cluster.member.id="-1" \
