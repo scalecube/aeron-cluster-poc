@@ -44,7 +44,7 @@ public class InteractiveClient {
   public static void main(String[] args) {
     System.setProperty(EventConfiguration.ENABLED_CLUSTER_EVENT_CODES_PROP_NAME, "all");
     System.setProperty(EventConfiguration.ENABLED_ARCHIVE_EVENT_CODES_PROP_NAME, "all");
-    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "all");
+    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "admin");
     EventLogAgent.agentmain("", ByteBuddyAgent.install());
 
     startClient();
