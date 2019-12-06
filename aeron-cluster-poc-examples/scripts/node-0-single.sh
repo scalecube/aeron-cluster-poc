@@ -19,10 +19,10 @@ java \
 -Daeron.cluster.members="0,localhost:20110,localhost:20220,localhost:20330,localhost:20440,localhost:8010" \
 -Daeron.cluster.ingress.channel="aeron:udp?term-length=64k" \
 -Daeron.cluster.log.channel="aeron:udp?term-length=256k|control-mode=manual|control=localhost:20550" \
--Daeron.dir=/dev/shm/aeron-n0 \
+-Daeron.dir=/dev/shm/aeron-n0-single \
 -Daeron.threading.mode=SHARED \
 -Daeron.archive.threading.mode=SHARED \
--Dio.scalecube.acpoc.instanceId=n0 \
+-Dio.scalecube.acpoc.instanceId=n0-single \
 -Dio.scalecube.acpoc.cleanStart=false \
 -Dio.scalecube.acpoc.cleanShutdown=false \
 -Dio.scalecube.acpoc.snapshotPeriodSecs=99999 \
