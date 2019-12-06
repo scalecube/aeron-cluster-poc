@@ -1,5 +1,7 @@
 package io.scalecube.acpoc;
 
+import io.aeron.agent.EventConfiguration;
+import io.aeron.agent.EventLogAgent;
 import io.aeron.archive.Archive;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusteredMediaDriver;
@@ -12,6 +14,7 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import java.io.File;
 import java.nio.file.Paths;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.agrona.CloseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +34,10 @@ public class ClusteredServiceRunner {
    * @param args arguments
    */
   public static void main(String[] args) {
-    //    System.setProperty(EventConfiguration.ENABLED_CLUSTER_EVENT_CODES_PROP_NAME, "all");
-    //    System.setProperty(EventConfiguration.ENABLED_ARCHIVE_EVENT_CODES_PROP_NAME, "all");
-    //    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "all");
-    //    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "admin");
-    //    EventLogAgent.agentmain("", ByteBuddyAgent.install());
+    System.setProperty(EventConfiguration.ENABLED_CLUSTER_EVENT_CODES_PROP_NAME, "all");
+    System.setProperty(EventConfiguration.ENABLED_ARCHIVE_EVENT_CODES_PROP_NAME, "all");
+    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "all");
+    EventLogAgent.agentmain("", ByteBuddyAgent.install());
 
     String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
     String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();

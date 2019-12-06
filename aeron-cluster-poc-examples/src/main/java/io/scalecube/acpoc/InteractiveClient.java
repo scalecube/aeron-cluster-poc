@@ -1,5 +1,7 @@
 package io.scalecube.acpoc;
 
+import io.aeron.agent.EventConfiguration;
+import io.aeron.agent.EventLogAgent;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.DefaultAllowTerminationValidator;
 import io.aeron.driver.MediaDriver;
@@ -9,6 +11,7 @@ import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.slf4j.Logger;
@@ -39,6 +42,11 @@ public class InteractiveClient {
    * @param args program arguments.
    */
   public static void main(String[] args) {
+    System.setProperty(EventConfiguration.ENABLED_CLUSTER_EVENT_CODES_PROP_NAME, "all");
+    System.setProperty(EventConfiguration.ENABLED_ARCHIVE_EVENT_CODES_PROP_NAME, "all");
+    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "all");
+    EventLogAgent.agentmain("", ByteBuddyAgent.install());
+
     startClient();
 
     Executors.newSingleThreadExecutor().submit(inputPollJob());
