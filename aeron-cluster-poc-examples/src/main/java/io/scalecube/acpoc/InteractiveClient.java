@@ -102,7 +102,8 @@ public class InteractiveClient {
                 .errorHandler(ex -> logger.error("Exception occurred at AeronCluster: ", ex))
                 .egressListener(new EgressListenerImpl())
                 .aeronDirectoryName(clientMediaDriver.aeronDirectoryName())
-                .ingressChannel("aeron:udp"));
+                .egressChannel("aeron:udp?endpoint=localhost:10020")
+                .ingressChannel("aeron:udp?endpoint=localhost:10010"));
     System.out.println("Client started.");
     logger.debug("client: {}", client.context().clusterMemberEndpoints());
   }
