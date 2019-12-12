@@ -27,9 +27,8 @@ public class ScalecubeServiceCoordinator {
   private ServiceEndpoint serviceEndpoint;
   private ClusterConfig clusterConfig;
   private Cluster cluster;
-
+  private CoordinatorMessageHandler messageHandler;
   private Scheduler scheduler;
-
   private final Map<String, ServiceEndpoint> serviceEndpoints = new HashMap<>();
 
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
@@ -53,6 +52,7 @@ public class ScalecubeServiceCoordinator {
     this.clusterConfig = other.clusterConfig;
     this.cluster = other.cluster;
     this.scheduler = other.scheduler;
+    this.messageHandler = other.messageHandler;
   }
 
   /**
@@ -143,19 +143,27 @@ public class ScalecubeServiceCoordinator {
       boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
       if (success) {
         LOGGER.info("ServiceEndpoint registered: {}", serviceEndpoint);
+        messageHandler.onEndpointRegistered(
+            new CoordinatorContextImpl(scheduler, cluster, serviceEndpoints.values()),
+            serviceEndpoint);
       }
     }
 
-    if (discoveryEvent.isEndpointRemoved()) {
+    if (discoveryEvent.isEndpointRemoved() || discoveryEvent.isEndpointLeaving()) {
       String endpointId = discoveryEvent.serviceEndpoint().id();
       ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
       if (serviceEndpoint != null) {
         LOGGER.info("ServiceEndpoint unregistered: {}", serviceEndpoint);
+        messageHandler.onEndpointUnregistered(
+            new CoordinatorContextImpl(scheduler, cluster, serviceEndpoints.values()),
+            serviceEndpoint);
       }
     }
   }
 
   private void onMessage(Message message) {
     LOGGER.debug("onMessage: {}", message);
+    messageHandler.onMessage(
+        new CoordinatorContextImpl(scheduler, cluster, serviceEndpoints.values()), message);
   }
 }
