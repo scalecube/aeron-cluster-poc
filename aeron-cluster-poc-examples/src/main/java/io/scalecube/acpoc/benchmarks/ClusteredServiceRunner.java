@@ -9,7 +9,7 @@ import io.aeron.cluster.service.ClusteredServiceContainer;
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import io.scalecube.acpoc.Configurations;
-import io.scalecube.acpoc.Utils;
+import io.scalecube.acpoc.Runners;
 import java.io.File;
 import java.nio.file.Paths;
 import org.agrona.CloseHelper;
@@ -29,7 +29,7 @@ public class ClusteredServiceRunner {
    */
   public static void main(String[] args) {
     String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
-    String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
+    String nodeId = "node-" + clusterMemberId + "-" + Runners.instanceId();
     String nodeDirName = Paths.get(IoUtil.tmpDirName(), "aeron", "cluster", nodeId).toString();
 
     if (Configurations.CLEAN_START) {
@@ -83,7 +83,7 @@ public class ClusteredServiceRunner {
         ClusteredServiceContainer.launch(clusteredServiceCtx);
 
     Mono<Void> onShutdown =
-        Utils.onShutdown(
+        Runners.onShutdown(
             () -> {
               CloseHelper.quietClose(clusteredServiceContainer);
               CloseHelper.quietClose(clusteredMediaDriver);

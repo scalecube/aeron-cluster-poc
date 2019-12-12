@@ -60,7 +60,7 @@ public class ClusterClientRunner {
             .subscribe(i -> client.pollEgress());
 
     Mono<Void> onShutdown =
-        Utils.onShutdown(
+        Runners.onShutdown(
             () -> {
               sender.dispose();
               receiver.dispose();

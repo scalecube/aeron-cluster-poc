@@ -54,7 +54,7 @@ public class InteractiveClient {
     receiver =
         Flux.interval(Duration.ofMillis(100)) //
             .subscribe(i -> client.pollEgress());
-    Mono<Void> onShutdown = Utils.onShutdown(shutdownHook());
+    Mono<Void> onShutdown = Runners.onShutdown(shutdownHook());
     onShutdown.block();
   }
 

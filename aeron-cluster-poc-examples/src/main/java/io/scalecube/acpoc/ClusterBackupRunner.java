@@ -30,7 +30,7 @@ public class ClusterBackupRunner {
    * @param args arguments
    */
   public static void main(String[] args) {
-    String nodeId = "cluster-backup-" + Utils.instanceId();
+    String nodeId = "cluster-backup-" + Runners.instanceId();
     String nodeDirName = Paths.get("target", "aeron", "cluster", nodeId).toString();
 
     if (CLEAN_START) {
@@ -78,7 +78,7 @@ public class ClusterBackupRunner {
         ClusterBackupMediaDriver.launch(mediaDriverContext, archiveContext, clusterBackupContext);
 
     Mono<Void> onShutdown =
-        Utils.onShutdown(
+        Runners.onShutdown(
             () -> {
               CloseHelper.close(clusterBackupMediaDriver);
               if (CLEAN_SHUTDOWN) {

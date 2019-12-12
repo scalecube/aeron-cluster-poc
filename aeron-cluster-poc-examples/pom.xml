@@ -62,6 +62,7 @@
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
     </dependency>
+
     <!-- Disruptor -->
     <dependency>
       <groupId>com.lmax</groupId>
@@ -75,6 +76,19 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>trace-reporter</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-commons</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>config</artifactId>
     </dependency>
   </dependencies>
 

@@ -35,12 +35,12 @@
     <opencsv.version>5.0</opencsv.version>
     <scalecube-commons.version>1.0.1</scalecube-commons.version>
     <scalecube-services.version>2.8.9</scalecube-services.version>
+    <scalecube.config.version>0.3.14</scalecube.config.version>
     <scalecube.trace-reporter.version>0.0.7</scalecube.trace-reporter.version>
   </properties>
 
   <modules>
     <module>aeron-cluster-poc-client</module>
-    <module>aeron-cluster-poc-server</module>
     <module>aeron-cluster-poc-examples</module>
     <module>aeron-cluster-poc-benchmarks</module>
   </modules>
@@ -107,6 +107,11 @@
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-services-discovery</artifactId>
         <version>${scalecube-services.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>config</artifactId>
+        <version>${scalecube.config.version}</version>
       </dependency>
 
       <dependency>

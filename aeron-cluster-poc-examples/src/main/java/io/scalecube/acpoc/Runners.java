@@ -9,11 +9,11 @@ import reactor.core.publisher.MonoProcessor;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
-public class Utils {
+public class Runners {
 
-  public static final Logger logger = LoggerFactory.getLogger(Utils.class);
+  public static final Logger logger = LoggerFactory.getLogger(Runners.class);
 
-  private Utils() {
+  private Runners() {
     // no-op
   }
 
