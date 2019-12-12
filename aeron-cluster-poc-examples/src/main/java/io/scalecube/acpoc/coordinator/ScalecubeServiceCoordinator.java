@@ -27,7 +27,7 @@ public class ScalecubeServiceCoordinator {
   private ServiceEndpoint serviceEndpoint;
   private ClusterConfig clusterConfig;
   private Cluster cluster;
-  private CoordinatorMessageHandler messageHandler;
+  private CoordinatorLogic messageHandler;
   private Scheduler scheduler;
   private final Map<String, ServiceEndpoint> serviceEndpoints = new HashMap<>();
 
