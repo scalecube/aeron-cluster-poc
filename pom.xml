@@ -40,7 +40,6 @@
 
   <modules>
     <module>aeron-cluster-poc-client</module>
-    <module>aeron-cluster-poc-server</module>
     <module>aeron-cluster-poc-examples</module>
     <module>aeron-cluster-poc-benchmarks</module>
   </modules>
