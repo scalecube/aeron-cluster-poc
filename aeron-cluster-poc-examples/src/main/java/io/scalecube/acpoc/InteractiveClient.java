@@ -1,6 +1,5 @@
 package io.scalecube.acpoc;
 
-import io.aeron.agent.EventConfiguration;
 import io.aeron.agent.EventLogAgent;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.DefaultAllowTerminationValidator;
@@ -42,9 +41,9 @@ public class InteractiveClient {
    * @param args program arguments.
    */
   public static void main(String[] args) {
-    System.setProperty(EventConfiguration.ENABLED_CLUSTER_EVENT_CODES_PROP_NAME, "all");
-    System.setProperty(EventConfiguration.ENABLED_ARCHIVE_EVENT_CODES_PROP_NAME, "all");
-    System.setProperty(EventConfiguration.ENABLED_EVENT_CODES_PROP_NAME, "admin");
+    System.setProperty("aeron.event.cluster.log", "all");
+    System.setProperty("aeron.event.archive.log", "all");
+    System.setProperty("aeron.event.log", "admin");
     EventLogAgent.agentmain("", ByteBuddyAgent.install());
 
     startClient();

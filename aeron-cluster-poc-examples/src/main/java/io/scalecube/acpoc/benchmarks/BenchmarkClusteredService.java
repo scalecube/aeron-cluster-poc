@@ -1,5 +1,6 @@
 package io.scalecube.acpoc.benchmarks;
 
+import io.aeron.ExclusivePublication;
 import io.aeron.Image;
 import io.aeron.Publication;
 import io.aeron.cluster.codecs.CloseReason;
@@ -86,7 +87,7 @@ public class BenchmarkClusteredService implements ClusteredService {
   }
 
   @Override
-  public void onTakeSnapshot(Publication snapshotPublication) {
+  public void onTakeSnapshot(ExclusivePublication snapshotPublication) {
     logger.info(
         "onTakeSnapshot => publication: memberId: {}, sessionId: {}, channel: {}, "
             + "streamId: {}, position: {}",
