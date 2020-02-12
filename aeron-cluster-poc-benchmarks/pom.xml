@@ -69,6 +69,14 @@
       <artifactId>opencsv</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>trace-reporter</artifactId>
+    </dependency>
     
   </dependencies>
 
