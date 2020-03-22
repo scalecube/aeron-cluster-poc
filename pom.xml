@@ -2,17 +2,22 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>aeron-cluster-poc-parent</artifactId>
+
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.17</version>
+    <version>0.1.0-RC1</version>
   </parent>
+
+  <artifactId>aeron-cluster-poc-parent</artifactId>
+
   <description>This project main goal is to get to know aeron-cluster and raft algorithm
   </description>
+
   <version>0.0.2-SNAPSHOT</version>
   <name>aeron-cluster-poc</name>
   <packaging>pom</packaging>
+
   <scm>
     <url>https://github.com/scalecube/aeron-cluster-poc</url>
     <connection>scm:git:git@github.com:scalecube/aeron-cluster-poc.git</connection>
