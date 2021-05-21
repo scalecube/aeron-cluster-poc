@@ -43,7 +43,7 @@ public class ClusterClientRunner {
                 .ingressChannel("aeron:udp"));
 
     Disposable sender =
-        Flux.interval(Duration.ofSeconds(1))
+        Flux.interval(Duration.ofMillis(500))
             .subscribe(
                 i -> {
                   String request = "Hello to cluster " + i;

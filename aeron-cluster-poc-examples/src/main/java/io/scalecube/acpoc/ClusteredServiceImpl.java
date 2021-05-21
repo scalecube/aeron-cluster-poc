@@ -2,7 +2,6 @@ package io.scalecube.acpoc;
 
 import io.aeron.ExclusivePublication;
 import io.aeron.Image;
-import io.aeron.cluster.ClusterControl;
 import io.aeron.cluster.ClusterControl.ToggleState;
 import io.aeron.cluster.codecs.CloseReason;
 import io.aeron.cluster.service.ClientSession;
@@ -12,11 +11,11 @@ import io.aeron.cluster.service.ClusteredService;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.agrona.concurrent.status.AtomicCounter;
-import org.agrona.concurrent.status.CountersManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +95,7 @@ public class ClusteredServiceImpl implements ClusteredService {
             + "sessionId: {}, position: {}, content: '{}'",
         new Date(timestampMs),
         cluster.memberId(),
-        session,
+        session.id(),
         header.position(),
         message);
 
@@ -118,9 +117,9 @@ public class ClusteredServiceImpl implements ClusteredService {
         String response = message + ", ClusteredService.serviceCounter(value=" + value + ")";
         UnsafeBuffer buffer1 = new UnsafeBuffer(response.getBytes());
         long l = session.offer(buffer1, 0, buffer1.capacity());
-        if (l > 0) {
-          logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
-        }
+        // if (l > 0) {
+        //   logger.info("Service: RESPONSE send result={}, serviceCounter(value={})", l, value);
+        // }
       }
     }
   }
@@ -197,6 +196,31 @@ public class ClusteredServiceImpl implements ClusteredService {
         cluster.memberId(),
         newRole,
         new Date(cluster.time()));
+  }
+
+  @Override
+  public void onNewLeadershipTermEvent(
+      long leadershipTermId,
+      long logPosition,
+      long timestamp,
+      long termBaseLogPosition,
+      int leaderMemberId,
+      int logSessionId,
+      TimeUnit timeUnit,
+      int appVersion) {
+    logger.info(
+        "onNewLeadershipTermEvent => memberId: {}, leadershipTermId: {}, logPosition: {}, "
+            + "timestampMs: {}, termBaseLogPosition: {}, leaderMemberId: {}, logSessionId: {}, "
+            + "timeUnit: {}, appVersion: {}",
+        cluster.memberId(),
+        leadershipTermId,
+        logPosition,
+        timestamp,
+        termBaseLogPosition,
+        leaderMemberId,
+        logSessionId,
+        timestamp,
+        appVersion);
   }
 
   @Override
