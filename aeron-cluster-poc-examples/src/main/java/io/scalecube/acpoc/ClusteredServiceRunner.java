@@ -3,6 +3,7 @@ package io.scalecube.acpoc;
 import io.aeron.agent.EventLogAgent;
 import io.aeron.archive.Archive;
 import io.aeron.archive.client.AeronArchive;
+import io.aeron.cluster.ClusterControl;
 import io.aeron.cluster.ClusteredMediaDriver;
 import io.aeron.cluster.ConsensusModule;
 import io.aeron.cluster.ConsensusModule.Configuration;
@@ -15,6 +16,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import org.agrona.CloseHelper;
+import org.agrona.concurrent.status.AtomicCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -55,18 +57,22 @@ public class ClusteredServiceRunner {
             .multicastFlowControlSupplier(new MinMulticastFlowControlSupplier());
 
     AeronArchive.Context aeronArchiveContext =
-        new AeronArchive.Context().aeronDirectoryName(mediaDriverContext.aeronDirectoryName());
+        new AeronArchive.Context()
+            .aeronDirectoryName(mediaDriverContext.aeronDirectoryName())
+            .controlRequestChannel("aeron:ipc?term-length=64k|alias=controlRequest")
+            .controlResponseChannel("aeron:ipc?term-length=64k|alias=controlResponse")
+            .errorHandler(ex -> logger.error("[AeronArchive] exception:", ex));
 
     Archive.Context archiveContext =
         new Archive.Context()
-            .errorHandler(ex -> logger.error("Exception occurred at Archive: ", ex))
-            .maxCatalogEntries(Configurations.MAX_CATALOG_ENTRIES)
             .aeronDirectoryName(mediaDriverContext.aeronDirectoryName())
             .archiveDir(new File(nodeDirName, "archive"))
-            .controlChannel(aeronArchiveContext.controlRequestChannel())
+            .recordingEventsEnabled(false)
+            // .controlChannel(aeronArchiveContext.controlRequestChannel())
             .controlStreamId(aeronArchiveContext.controlRequestStreamId())
+            .localControlChannel(aeronArchiveContext.controlRequestChannel())
             .localControlStreamId(aeronArchiveContext.controlRequestStreamId())
-            .recordingEventsChannel(aeronArchiveContext.recordingEventsChannel());
+            .errorHandler(ex -> logger.error("Exception occurred at Archive: ", ex));
 
     ConsensusModule.Context consensusModuleContext =
         new ConsensusModule.Context()
@@ -74,13 +80,18 @@ public class ClusteredServiceRunner {
             .terminationHook(() -> logger.info("TerminationHook called on ConsensusModule"))
             .aeronDirectoryName(mediaDriverContext.aeronDirectoryName())
             .clusterDir(new File(nodeDirName, "consensus"))
-            .archiveContext(aeronArchiveContext.clone());
+            .archiveContext(aeronArchiveContext.clone())
+            .replicationChannel("aeron:udp?endpoint=localhost:0");
 
     ClusteredMediaDriver clusteredMediaDriver =
         ClusteredMediaDriver.launch(mediaDriverContext, archiveContext, consensusModuleContext);
 
-    ClusteredService clusteredService =
-        new ClusteredServiceImpl(clusteredMediaDriver.mediaDriver().context().countersManager());
+    AtomicCounter controlToggle =
+        ClusterControl.findControlToggle(
+            mediaDriverContext.countersManager(),
+            clusteredMediaDriver.consensusModule().context().clusterId());
+
+    ClusteredService clusteredService = new ClusteredServiceImpl(controlToggle);
 
     ClusteredServiceContainer.Context clusteredServiceCtx =
         new ClusteredServiceContainer.Context()

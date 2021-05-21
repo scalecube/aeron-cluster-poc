@@ -28,7 +28,7 @@ class EgressListenerImpl implements EgressListener {
   }
 
   @Override
-  public void sessionEvent(
+  public void onSessionEvent(
       long correlationId,
       long clusterSessionId,
       long leadershipTermId,
@@ -47,14 +47,14 @@ class EgressListenerImpl implements EgressListener {
   }
 
   @Override
-  public void newLeader(
-      long clusterSessionId, long leadershipTermId, int leaderMemberId, String memberEndpoints) {
+  public void onNewLeader(
+      long clusterSessionId, long leadershipTermId, int leaderMemberId, String ingressEndpoints) {
     logger.info(
         "[newLeader]: clusterSessionId: {}, "
             + "leadershipTermId: {}, leaderMemberId: {}, memberEndpoints: {}",
         clusterSessionId,
         leadershipTermId,
         leaderMemberId,
-        memberEndpoints);
+        ingressEndpoints);
   }
 }

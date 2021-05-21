@@ -77,7 +77,7 @@ public class ClusterClient implements AutoCloseable {
             () ->
                 new AeronCluster.Context()
                     .messageTimeoutNs(TimeUnit.SECONDS.toNanos(60))
-                    .clusterMemberEndpoints(clusterMemberEndpoints)
+                    .ingressEndpoints(clusterMemberEndpoints)
                     .ingressChannel(ClusterMember.ingressChannel(Runners.CLIENT_BASE_PORT))
                     .egressChannel(ClusterMember.egressChannel(Runners.CLIENT_BASE_PORT))
                     .egressListener(egressListener)

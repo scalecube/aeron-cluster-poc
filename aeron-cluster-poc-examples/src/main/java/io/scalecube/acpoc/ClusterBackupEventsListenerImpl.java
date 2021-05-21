@@ -19,8 +19,8 @@ final class ClusterBackupEventsListenerImpl implements ClusterBackupEventsListen
   }
 
   @Override
-  public void onPossibleClusterFailure() {
-    LOGGER.info("[onPossibleClusterFailure]");
+  public void onPossibleFailure(Exception ex) {
+    LOGGER.warn("[onPossibleClusterFailure]", ex);
   }
 
   @Override

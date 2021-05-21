@@ -104,6 +104,6 @@ public class InteractiveClient {
                 .egressChannel("aeron:udp?endpoint=localhost:10020")
                 .ingressChannel("aeron:udp?endpoint=localhost:10010"));
     System.out.println("Client started.");
-    logger.debug("client: {}", client.context().clusterMemberEndpoints());
+    logger.debug("client: {}", client.context().ingressEndpoints());
   }
 }

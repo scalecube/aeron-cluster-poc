@@ -27,7 +27,7 @@ public class ClusteredServiceImpl implements ClusteredService {
   public static final String TIMER_COMMAND = "SCHEDULE_TIMER";
   public static final String SNAPSHOT_COMMAND = "SNAPSHOT";
 
-  private final CountersManager countersManager;
+  private final AtomicCounter controlToggle;
 
   private Cluster cluster;
 
@@ -36,8 +36,8 @@ public class ClusteredServiceImpl implements ClusteredService {
   private final AtomicInteger serviceCounter = new AtomicInteger();
   private long timeIdCounter;
 
-  public ClusteredServiceImpl(CountersManager countersManager) {
-    this.countersManager = countersManager;
+  public ClusteredServiceImpl(AtomicCounter controlToggle) {
+    this.controlToggle = controlToggle;
   }
 
   @Override
@@ -109,7 +109,6 @@ public class ClusteredServiceImpl implements ClusteredService {
     }
 
     if (SNAPSHOT_COMMAND.equalsIgnoreCase(message)) {
-      AtomicCounter controlToggle = ClusterControl.findControlToggle(countersManager);
       toggle(controlToggle, ToggleState.SNAPSHOT);
     }
 
@@ -181,7 +180,7 @@ public class ClusteredServiceImpl implements ClusteredService {
       if (fragments == 1) {
         break;
       }
-      cluster.idle();
+      cluster.idleStrategy().idle();
       System.out.print(".");
     }
 
