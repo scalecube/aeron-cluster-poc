@@ -1,5 +1,6 @@
 package io.scalecube.acpoc;
 
+import io.aeron.CommonContext;
 import io.aeron.agent.EventLogAgent;
 import io.aeron.cluster.client.AeronCluster;
 import io.aeron.driver.DefaultAllowTerminationValidator;
@@ -86,23 +87,25 @@ public class InteractiveClient {
 
   private static void startClient() {
     System.out.println("Client starting.");
-    clientMediaDriver =
-        MediaDriver.launch(
-            new MediaDriver.Context()
-                .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
-                .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
-                .terminationValidator(new DefaultAllowTerminationValidator())
-                .warnIfDirectoryExists(true)
-                .dirDeleteOnStart(true)
-                .dirDeleteOnShutdown(true));
+    String aeronDirectoryName = CommonContext.getAeronDirectoryName();
+    if (!Boolean.getBoolean("embedded.media.driver")) {
+      clientMediaDriver =
+          MediaDriver.launch(
+              new MediaDriver.Context()
+                  .errorHandler(ex -> logger.error("Exception occurred at MediaDriver: ", ex))
+                  .terminationHook(() -> logger.info("TerminationHook called on MediaDriver "))
+                  .terminationValidator(new DefaultAllowTerminationValidator())
+                  .warnIfDirectoryExists(true)
+                  .dirDeleteOnStart(true)
+                  .dirDeleteOnShutdown(true));
+      aeronDirectoryName = clientMediaDriver.aeronDirectoryName();
+    }
     client =
         AeronCluster.connect(
             new AeronCluster.Context()
                 .errorHandler(ex -> logger.error("Exception occurred at AeronCluster: ", ex))
                 .egressListener(new EgressListenerImpl())
-                .aeronDirectoryName(clientMediaDriver.aeronDirectoryName())
-                .egressChannel("aeron:udp?endpoint=localhost:10020")
-                .ingressChannel("aeron:udp?endpoint=localhost:10010"));
+                .aeronDirectoryName(aeronDirectoryName));
     System.out.println("Client started.");
     logger.debug("client: {}", client.context().ingressEndpoints());
   }

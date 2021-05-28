@@ -9,9 +9,9 @@ echo $JAR_FILE
 
 java \
 -cp target/${JAR_FILE}:target/lib/* \
--Daeron.dir=/dev/shm/aeron-client-interactive-0 \
+-Daeron.dir=dev/shm/aeron-n0-single \
+-Dembedded.media.driver=true \
 -Daeron.threading.mode=SHARED \
--Daeron.cluster.ingress.endpoints="0=localhost:20110,1=localhost:20111,2=localhost:20112" \
--Daeron.cluster.ingress.channel="aeron:udp?endpoint=localhost:10010" \
+-Daeron.cluster.ingress.channel="aeron:ipc?term-length=64k|endpoint=ipc:0" \
 -Daeron.cluster.egress.channel="aeron:udp?endpoint=localhost:10020" \
 ${JVM_OPTS} io.scalecube.acpoc.InteractiveClient
