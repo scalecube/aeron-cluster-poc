@@ -132,6 +132,6 @@ public class BenchmarkClusteredService implements ClusteredService {
     if (Thread.currentThread().isInterrupted()) {
       throw new IllegalStateException("Unexpected interrupt");
     }
-    cluster.idle();
+    cluster.idleStrategy().idle();
   }
 }
