@@ -1,6 +1,5 @@
 package io.scalecube.acpoc;
 
-import io.aeron.agent.EventLogAgent;
 import io.aeron.archive.Archive;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.cluster.ClusterControl;
@@ -14,7 +13,6 @@ import io.aeron.driver.MediaDriver;
 import io.aeron.driver.MinMulticastFlowControlSupplier;
 import java.io.File;
 import java.nio.file.Paths;
-import net.bytebuddy.agent.ByteBuddyAgent;
 import org.agrona.CloseHelper;
 import org.agrona.concurrent.status.AtomicCounter;
 import org.slf4j.Logger;
@@ -35,10 +33,10 @@ public class ClusteredServiceRunner {
    * @param args arguments
    */
   public static void main(String[] args) {
-    System.setProperty("aeron.event.cluster.log", "all");
-    System.setProperty("aeron.event.archive.log", "all");
-    System.setProperty("aeron.event.log", "admin");
-    EventLogAgent.agentmain("", ByteBuddyAgent.install());
+    //    System.setProperty("aeron.event.cluster.log", "all");
+    //    System.setProperty("aeron.event.archive.log", "all");
+    //    System.setProperty("aeron.event.log", "admin");
+    //    EventLogAgent.agentmain("", ByteBuddyAgent.install());
 
     String clusterMemberId = Integer.toHexString(Configuration.clusterMemberId());
     String nodeId = "node-" + clusterMemberId + "-" + Utils.instanceId();
