@@ -53,6 +53,30 @@ public class ClusterClientRunner {
                   long l = client.offer(buffer, 0, bytes.length);
 
                   logger.info("Client: REQUEST {} send, result={}", i, l);
+
+                  if (true) {
+                    try {
+                      if (!client.sendKeepAlive()) {
+                        System.err.println("sendKeepAlive failed");
+                      }
+                      System.err.println("client.leaderMemberId = " + client.leaderMemberId());
+                      System.err.println("client.clusterSessionId = " + client.clusterSessionId());
+                      System.err.println("client.leadershipTermId = " + client.leadershipTermId());
+
+                      if (client.isClosed()) {
+                        System.err.println("client.isClosed");
+                      }
+                      if (!client.egressSubscription().isConnected()) {
+                        System.err.println("egressSubscription is not connected");
+                      }
+                      if (!client.ingressPublication().isConnected()) {
+                        System.err.println("ingressPublication is not connected");
+                      }
+                      System.err.println("-----------------------------------------------------");
+                    } catch (Exception e) {
+                      e.printStackTrace();
+                    }
+                  }
                 });
 
     Disposable receiver =

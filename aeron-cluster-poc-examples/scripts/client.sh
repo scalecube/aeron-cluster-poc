@@ -9,7 +9,8 @@ echo $JAR_FILE
 
 java \
 -cp target/${JAR_FILE}:target/lib/* \
--Daeron.dir=/dev/shm/aeron-client-0 \
+--add-opens java.base/sun.nio.ch=ALL-UNNAMED \
+-Daeron.dir=target/aeron-client-0 \
 -Daeron.threading.mode=SHARED \
 -Daeron.cluster.ingress.endpoints="0=localhost:20110,1=localhost:20111,2=localhost:20112" \
 ${JVM_OPTS} io.scalecube.acpoc.ClusterClientRunner
